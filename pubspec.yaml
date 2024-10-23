@@ -1,0 +1,40 @@
+name: cpm_auto_click
+description: "tools support click"
+publish_to: "none"
+version: 1.0.0
+
+environment:
+  sdk: ">=3.4.4 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  excel:
+    git:
+      url: https://github.com/nhantruong1298/excel.git
+  file_picker: ^8.1.3
+  provider: ^6.1.2
+  intl: ^0.19.0
+  collection: ^1.18.0
+  url_launcher: ^6.3.1
+  icons_launcher: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icon.png
+
+icons_launcher:
+  image_path: "assets/icon.png"
+  platforms:
+    macos:
+      enable: true
+      image_path: "assets/icon.png"
+    windows:
+      enable: true
+      image_path: "assets/icon.png"
