@@ -17,8 +17,8 @@ class HomeViewModel with ChangeNotifier {
   //*Column H (Vào web)
   final columnH = 7;
 
-  //*Column I (Kết quả thực hiện)
-  final columnI = 8;
+  // //*Column I (Kết quả thực hiện)
+  // final columnI = 8;
 
   //*Column F (tên NV)
   final columnF = 5;
@@ -55,11 +55,7 @@ class HomeViewModel with ChangeNotifier {
           (columns[columnG]?.value as TextCellValue).value.text?.trim() ==
               gpsTimeString;
 
-      final validResultCol =
-          (columns[columnI]?.value as TextCellValue).value.text?.trim() ==
-              'Thành công';
-
-      return validGPSTimeCol && validResultCol;
+      return validGPSTimeCol;
     }).toList();
 
     final groupRows = selectRows.groupListsBy(
@@ -133,25 +129,19 @@ class HomeViewModel with ChangeNotifier {
 
       try {
         plan = (rows.first[columnJ]?.value as TextCellValue?)?.value.text ?? '';
-        plan.trim().toLowerCase();
+        plan = plan.toLowerCase().trim();
       } catch (_) {
         plan = '';
       }
 
-      double ratio(String plan) {
-        switch (plan) {
-          case Plan.green:
-            return 0.1;
-          case Plan.yellow:
-            return 0.15;
-          case Plan.red:
-            return 0.20;
-          default:
-            return 0.0;
-        }
-      }
+      final ratio = switch (plan) {
+        Plan.green => 0.1,
+        Plan.yellow => 0.15,
+        Plan.red => 0.20,
+        _ => 0.0
+      };
 
-      final numberOfTabs = (ratio(plan) * rows.length).ceil();
+      final numberOfTabs = (ratio * rows.length).ceil();
 
       final randomRows = List.of(rows);
       randomRows.shuffle();
@@ -189,11 +179,7 @@ class HomeViewModel with ChangeNotifier {
           (columns[columnG]?.value as TextCellValue).value.text?.trim() ==
               gpsTimeString;
 
-      final validResultCol =
-          (columns[columnI]?.value as TextCellValue).value.text?.trim() ==
-              'Thành công';
-
-      return validGPSTimeCol && validResultCol;
+      return validGPSTimeCol;
     }).toList();
 
     final groupRows = selectRows.groupListsBy(
@@ -201,7 +187,6 @@ class HomeViewModel with ChangeNotifier {
 
     final tabs = _getRandomTabsByPlan(groupRows);
 
-    print(tabs);
-    // await Future.forEach(tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+    await Future.forEach(tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
   }
 }

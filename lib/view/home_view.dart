@@ -178,12 +178,6 @@ class _HomeViewState extends State<HomeView> {
       int value = int.parse(text);
       return value;
     } catch (err) {
-      showDialog(
-        context: context,
-        builder: (context) => const AppAlertDialog(
-          content: Text('Số lượng tab không hợp lệ'),
-        ),
-      );
       return null;
     }
   }
@@ -192,7 +186,7 @@ class _HomeViewState extends State<HomeView> {
     showDialog(
         context: context,
         builder: (context) => const AppAlertDialog(
-              content: Text("Số lượng tab quá nhiều"),
+              content: Text("Số lượng tab không hợp lệ"),
             ));
   }
 
@@ -215,7 +209,7 @@ class _HomeViewState extends State<HomeView> {
       return showInvalidInputData();
     }
 
-    if (numberTab! > 50) {
+    if (numberTab! > 50 || numberTab == 0) {
       return showWarningOverloadNumberTab();
     }
 
