@@ -114,7 +114,7 @@ class HomeViewModel with ChangeNotifier {
   }
 
   Future<void> _launchUrl(Uri uri) async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    await Future.delayed(const Duration(milliseconds: 300));
     if (!await launchUrl(uri, webOnlyWindowName: '_self')) {
       errorMessage = 'Could not launch $uri';
       notifyListeners();
@@ -176,7 +176,8 @@ class HomeViewModel with ChangeNotifier {
 
     final selectRows = sheet.rows.where((columns) {
       final validGPSTimeCol =
-          (columns[columnG]?.value as TextCellValue).value.text?.trim() ==
+          ((columns[columnG]?.value as TextCellValue?)?.value.text ?? '')
+                  .trim() ==
               gpsTimeString;
 
       return validGPSTimeCol;
