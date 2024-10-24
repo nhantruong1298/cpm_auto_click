@@ -1,7 +1,7 @@
 name: cpm_auto_click
 description: "tools support click"
 publish_to: "none"
-version: 1.0.0
+version: 1.0.2
 
 environment:
   sdk: ">=3.4.4 <4.0.0"
@@ -19,10 +19,12 @@ dependencies:
   url_launcher: ^6.3.1
   icons_launcher: ^3.0.0
 
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^3.0.0
+  msix: ^3.16.8
 
 flutter:
   uses-material-design: true
@@ -38,3 +40,16 @@ icons_launcher:
     windows:
       enable: true
       image_path: "assets/icon.png"
+
+msix_config:
+  display_name: Auto click
+  app_installer: #<-- app installer configuration
+    publish_folder_path: D:\myPublishFolder
+    hours_between_update_checks: 0
+    automatic_background_task: true
+    update_blocks_activation: true
+    show_prompt: true
+    force_update_from_any_version: false
+  msix_version: 1.0.0.2
+
+
