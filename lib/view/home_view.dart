@@ -39,28 +39,30 @@ class _HomeViewState extends State<HomeView> {
       body: SizedBox(
         width: double.infinity,
         height: double.infinity,
-        child: Padding(
+        child: Container(
+          color: Colors.grey.shade100,
           padding: const EdgeInsets.all(16.0),
           child: SingleChildScrollView(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                const Wrap(
                   children: [
-                    Text('* Mở link trong excel',
+                    Text('* Mở links trong excel',
                         style: TextStyle(fontSize: 20)),
+                    Gap(
+                      ratio: 5,
+                      direction: GapDirection.horizontal,
+                    ),
                     _NoteForOpenWebInExcel()
                   ],
                 ),
                 const Gap(ratio: 1),
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
                   children: [
                     MaterialButton(
                       onPressed: () => _handlePickExcelFile(),
-                      color: Colors.amber[500],
+                      color: const Color(0xfffdc35a),
                       child: const Text("Chọn file excel"),
                     ),
                     Expanded(
@@ -78,7 +80,7 @@ class _HomeViewState extends State<HomeView> {
                   children: [
                     MaterialButton(
                       onPressed: _handlePickGPSTime,
-                      color: Colors.amber[500],
+                      color: const Color(0xfffdc35a),
                       child: const Text("Chọn GPS Time/Ngày"),
                     ),
                     Text('  ${_gpsTime?.toLocal() ?? ''}'),
@@ -93,26 +95,36 @@ class _HomeViewState extends State<HomeView> {
                 TextField(
                   controller: _numberOfTabTextController,
                   decoration: const InputDecoration(
-                    label: Text('Số lượng tab cần mở'),
+                    label: Text('Số links cần mở'),
                   ),
                 ),
                 const Gap(ratio: 2),
-                Row(
+                Wrap(
                   children: [
                     MaterialButton(
                       onPressed: _handleOpenTabByNumber,
-                      color: Colors.amber[500],
-                      child: const Text("Mở theo số lượng tab"),
+                      color: const Color(0xfffdc35a),
+                      child: const Text("Mở theo số lượng links"),
                     ),
                     const Gap(direction: GapDirection.horizontal),
                     MaterialButton(
                       onPressed: _handleOpenTabByPlan,
-                      color: Colors.amber[500],
+                      color: const Color(0xfffdc35a),
                       child: const Text("Mở theo kế hoạch"),
                     ),
                   ],
                 ),
-                const Gap(ratio: 1),
+                const Gap(ratio: 5),
+                Center(
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/icon.png',
+                      width: 200,
+                      height: 200,
+                      fit: BoxFit.contain,
+                    ),
+                  ),
+                )
               ],
             ),
           ),
@@ -186,7 +198,7 @@ class _HomeViewState extends State<HomeView> {
     showDialog(
         context: context,
         builder: (context) => const AppAlertDialog(
-              content: Text("Số lượng tab không hợp lệ"),
+              content: Text("Số lượng links không hợp lệ"),
             ));
   }
 
@@ -244,7 +256,6 @@ class _NoteForOpenWebInExcel extends StatelessWidget {
           '''Kiểm tra vị trí các cột trước khi sử dụng:
         Cột H: Vào web 
         Cột F: Tên NV 
-        Cột I: Kết quả thực hiện 
         Cột G: GPS Time / Ngày
         Cột J: Kế hoạch
       ''',
