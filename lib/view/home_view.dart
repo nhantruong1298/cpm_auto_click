@@ -45,13 +45,13 @@ class _HomeViewState extends State<HomeView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                const Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('* Mở link trong excel',
+                    Text('* Mở link trong excel',
                         style: TextStyle(fontSize: 20)),
-                    const _NoteForOpenWebInExcel()
+                    _NoteForOpenWebInExcel()
                   ],
                 ),
                 const Gap(ratio: 1),
@@ -97,10 +97,20 @@ class _HomeViewState extends State<HomeView> {
                   ),
                 ),
                 const Gap(ratio: 2),
-                MaterialButton(
-                  onPressed: _handleOpenTabWebInExcel,
-                  color: Colors.amber[500],
-                  child: const Text("Mở"),
+                Row(
+                  children: [
+                    MaterialButton(
+                      onPressed: _handleOpenTabByNumber,
+                      color: Colors.amber[500],
+                      child: const Text("Mở theo số lượng tab"),
+                    ),
+                    const Gap(direction: GapDirection.horizontal),
+                    MaterialButton(
+                      onPressed: _handleOpenTabByPlan,
+                      color: Colors.amber[500],
+                      child: const Text("Mở theo kế hoạch"),
+                    ),
+                  ],
                 ),
                 const Gap(ratio: 1),
               ],
@@ -117,6 +127,17 @@ class _HomeViewState extends State<HomeView> {
     _numberOfTabTextController.dispose();
     _homeViewModel.removeListener(listener);
     super.dispose();
+  }
+
+  void listener() {
+    var errorMessage = _homeViewModel.errorMessage;
+
+    if (errorMessage != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AppAlertDialog(content: Text(errorMessage)),
+      );
+    }
   }
 
   Future<void> _handlePickExcelFile() async {
@@ -167,47 +188,54 @@ class _HomeViewState extends State<HomeView> {
     }
   }
 
-  void _handleOpenTabWebInExcel() {
-    var sheetName = _sheetNameTextController.text;
-    var numberTab = parseNumberOfTabWeb(_numberOfTabTextController.text);
+  void showWarningOverloadNumberTab() {
+    showDialog(
+        context: context,
+        builder: (context) => const AppAlertDialog(
+              content: Text("Số lượng tab quá nhiều"),
+            ));
+  }
 
+  void showInvalidInputData() {
+    showDialog(
+        context: context,
+        builder: (context) => const AppAlertDialog(
+            content: Text("Dữ liệu nhập chưa hợp lệ")));
+  }
+
+  String get sheetName => _sheetNameTextController.text;
+  int? get numberTab =>
+      parseNumberOfTabWeb(_numberOfTabTextController.text) ?? 0;
+
+  void _handleOpenTabByNumber() {
     if (sheetName.isEmpty ||
         numberTab == null ||
         _gpsTime == null ||
         _excelFile == null) {
-      showDialog(
-          context: context,
-          builder: (context) => const AppAlertDialog(
-                content: Text("Dữ liệu nhập không hợp lệ"),
-              ));
-      return;
+      return showInvalidInputData();
     }
 
-    if (numberTab > 50) {
-      showDialog(
-          context: context,
-          builder: (context) => const AppAlertDialog(
-                content: Text("Số lượng tab quá nhiều"),
-              ));
-      return;
+    if (numberTab! > 50) {
+      return showWarningOverloadNumberTab();
     }
 
-    _homeViewModel.openTabWebInExcel(
+    _homeViewModel.openTabWebInExcelByNumber(
         excelFile: _excelFile!,
         sheetName: sheetName,
         gpsTime: _gpsTime!,
-        numberOfTab: numberTab);
+        numberOfTab: numberTab!);
   }
 
-  void listener() {
-    var errorMessage = _homeViewModel.errorMessage;
-
-    if (errorMessage != null) {
-      showDialog(
-        context: context,
-        builder: (context) => AppAlertDialog(content: Text(errorMessage)),
-      );
+  void _handleOpenTabByPlan() {
+    if (sheetName.isEmpty || _gpsTime == null || _excelFile == null) {
+      return showInvalidInputData();
     }
+
+    _homeViewModel.openTabWebInExcelByPlan(
+      excelFile: _excelFile!,
+      sheetName: sheetName,
+      gpsTime: _gpsTime!,
+    );
   }
 }
 
@@ -216,15 +244,15 @@ class _NoteForOpenWebInExcel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
+    return const Wrap(
       children: [
         Text(
           '''Kiểm tra vị trí các cột trước khi sử dụng:
         Cột H: Vào web 
         Cột F: Tên NV 
         Cột I: Kết quả thực hiện 
-        Cột G: GPS Time / Ngày 
-
+        Cột G: GPS Time / Ngày
+        Cột J: Kế hoạch
       ''',
           textAlign: TextAlign.start,
         )

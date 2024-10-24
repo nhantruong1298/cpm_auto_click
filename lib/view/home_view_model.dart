@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:collection/collection.dart';
+import 'package:cpm_auto_click/model/plan.dart';
 import 'package:excel/excel.dart';
 
 import 'package:flutter/foundation.dart';
@@ -10,32 +11,50 @@ import 'package:url_launcher/url_launcher.dart';
 class HomeViewModel with ChangeNotifier {
   String? errorMessage;
 
-  Future<void> openTabWebInExcel({
+  //*Column G (GPS Time/Ngày)
+  final columnG = 6;
+
+  //*Column H (Vào web)
+  final columnH = 7;
+
+  //*Column I (Kết quả thực hiện)
+  final columnI = 8;
+
+  //*Column F (tên NV)
+  final columnF = 5;
+
+  //*Column J (Kế hoạch)
+  final columnJ = 9;
+
+  String _parseDateToString(DateTime date) {
+    return DateFormat('yyyy-MM-dd').format(date).toString();
+  }
+
+  Sheet? _getExcelSheet(File excelFile, String sheetName) {
+    var excel = Excel.decodeBytes(excelFile.readAsBytesSync());
+    return excel.sheets[sheetName];
+  }
+
+  Future<void> openTabWebInExcelByNumber({
     required File excelFile,
     required String sheetName,
     required DateTime gpsTime,
     required int numberOfTab,
   }) async {
-    var excel = Excel.decodeBytes(excelFile.readAsBytesSync());
+    var sheet = _getExcelSheet(excelFile, sheetName);
 
-    if (!excel.sheets.containsKey(sheetName)) {
+    if (sheet == null) {
       errorMessage = 'Tên sheet không tồn tại';
-      notifyListeners();
-      return;
+      return notifyListeners();
     }
 
-    final gpsTimeString = DateFormat('yyyy-MM-dd').format(gpsTime).toString();
+    final gpsTimeString = _parseDateToString(gpsTime);
 
-    final sheet = excel.sheets[sheetName];
-    final selectRows = sheet!.rows.where((columns) {
-      //*Check column G (GPS Time/Ngày)
-      const columnG = 6;
+    final selectRows = sheet.rows.where((columns) {
       final validGPSTimeCol =
           (columns[columnG]?.value as TextCellValue).value.text?.trim() ==
               gpsTimeString;
 
-      //*Check column I (Kết quả thực hiện)
-      const columnI = 8;
       final validResultCol =
           (columns[columnI]?.value as TextCellValue).value.text?.trim() ==
               'Thành công';
@@ -43,22 +62,18 @@ class HomeViewModel with ChangeNotifier {
       return validGPSTimeCol && validResultCol;
     }).toList();
 
-    //*Group by column F (tên NV)
-    const columnF = 5;
     final groupRows = selectRows.groupListsBy(
         (columns) => (columns[columnF]?.value as TextCellValue).value.text);
 
-    final tabs = _getRandomTabs(groupRows, numberOfTab);
+    final tabs = _getRandomTabsByNumber(groupRows, numberOfTab);
     await Future.forEach(tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
   }
 
-  List<String> _getRandomTabs(
+  List<String> _getRandomTabsByNumber(
     Map<String?, List<List<Data?>>> groupRows,
     int numberOfTab,
   ) {
     String? getRandomTab(List<List<Data?>> rows) {
-      //*Index of column H (Nơi chứ URL)
-      const columnH = 7;
       final randomIndex = Random().nextInt(rows.length);
 
       final hyperlink =
@@ -108,5 +123,69 @@ class HomeViewModel with ChangeNotifier {
       errorMessage = 'Could not launch $uri';
       notifyListeners();
     }
+  }
+
+  List<String> _getRandomTabsByPlan(Map<String?, List<List<Data?>>> groupRows) {
+    List<List<Data?>> selectedRows = [];
+
+    groupRows.forEach((_, rows) {
+      final plan = (rows.first[columnJ]?.value as TextCellValue?)?.value.text;
+
+      final ratio = switch (plan) {
+        var plan when plan == Plan.green.text => 0.1,
+        var plan when plan == Plan.yellow.text => 0.15,
+        var plan when plan == Plan.red.text => 0.20,
+        _ => 0.0,
+      };
+
+      final numberOfTabs = (ratio * rows.length).ceil();
+
+      selectedRows.addAll(rows
+        ..shuffle()
+        ..take(numberOfTabs));
+    });
+
+    return selectedRows.map((row) {
+      final hyperlink = (row[columnH]?.value as FormulaCellValue).formula;
+
+      final url = (hyperlink
+          .split('"')
+          .firstWhereOrNull((element) => element.contains('https')));
+
+      return url ?? '';
+    }).toList();
+  }
+
+  Future<void> openTabWebInExcelByPlan({
+    required File excelFile,
+    required String sheetName,
+    required DateTime gpsTime,
+  }) async {
+    var sheet = _getExcelSheet(excelFile, sheetName);
+
+    if (sheet == null) {
+      errorMessage = 'Tên sheet không tồn tại';
+      return notifyListeners();
+    }
+
+    final gpsTimeString = _parseDateToString(gpsTime);
+
+    final selectRows = sheet.rows.where((columns) {
+      final validGPSTimeCol =
+          (columns[columnG]?.value as TextCellValue).value.text?.trim() ==
+              gpsTimeString;
+
+      final validResultCol =
+          (columns[columnI]?.value as TextCellValue).value.text?.trim() ==
+              'Thành công';
+
+      return validGPSTimeCol && validResultCol;
+    }).toList();
+
+    final groupRows = selectRows.groupListsBy(
+        (columns) => (columns[columnF]?.value as TextCellValue).value.text);
+
+    final tabs = _getRandomTabsByPlan(groupRows);
+    await Future.forEach(tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
   }
 }
