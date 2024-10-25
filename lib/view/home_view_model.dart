@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 class HomeViewModel with ChangeNotifier {
   String? errorMessage;
+  List<String>? tabs;
 
   //*Column G (GPS Time/Ngày)
   final columnG = 6;
@@ -50,19 +51,26 @@ class HomeViewModel with ChangeNotifier {
 
     final gpsTimeString = _parseDateToString(gpsTime);
 
-    final selectRows = sheet.rows.where((columns) {
-      final validGPSTimeCol =
-          (columns[columnG]?.value as TextCellValue).value.text?.trim() ==
-              gpsTimeString;
+    try {
+      final selectRows = sheet.rows.where((columns) {
+        final validGPSTimeCol =
+            ((columns[columnG]?.value as TextCellValue?)?.value.text ?? '')
+                    .trim() ==
+                gpsTimeString;
 
-      return validGPSTimeCol;
-    }).toList();
+        return validGPSTimeCol;
+      }).toList();
 
-    final groupRows = selectRows.groupListsBy(
-        (columns) => (columns[columnF]?.value as TextCellValue).value.text);
+      final groupRows = selectRows.groupListsBy(
+          (columns) => (columns[columnF]?.value as TextCellValue).value.text);
 
-    final tabs = _getRandomTabsByNumber(groupRows, numberOfTab);
-    await Future.forEach(tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+      final tabs = _getRandomTabsByNumber(groupRows, numberOfTab);
+      await Future.forEach(
+          tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+    } catch (error) {
+      errorMessage = error.toString();
+      notifyListeners();
+    }
   }
 
   List<String> _getRandomTabsByNumber(
@@ -116,7 +124,7 @@ class HomeViewModel with ChangeNotifier {
   Future<void> _launchUrl(Uri uri) async {
     await Future.delayed(const Duration(milliseconds: 300));
     if (!await launchUrl(uri, webOnlyWindowName: '_self')) {
-      errorMessage = 'Could not launch $uri';
+      errorMessage = 'Không thể mở tab: $uri';
       notifyListeners();
     }
   }
@@ -141,7 +149,7 @@ class HomeViewModel with ChangeNotifier {
         _ => 0.0
       };
 
-      final numberOfTabs = (ratio * rows.length).ceil();
+      final numberOfTabs = (ratio * rows.length).round();
 
       final randomRows = List.of(rows);
       randomRows.shuffle();
@@ -160,7 +168,7 @@ class HomeViewModel with ChangeNotifier {
     }).toList();
   }
 
-  Future<void> openTabWebInExcelByPlan({
+  Future<void> calculateTabWebInExcelByPlan({
     required File excelFile,
     required String sheetName,
     required DateTime gpsTime,
@@ -174,20 +182,37 @@ class HomeViewModel with ChangeNotifier {
 
     final gpsTimeString = _parseDateToString(gpsTime);
 
-    final selectRows = sheet.rows.where((columns) {
-      final validGPSTimeCol =
-          ((columns[columnG]?.value as TextCellValue?)?.value.text ?? '')
-                  .trim() ==
-              gpsTimeString;
+    try {
+      final selectRows = sheet.rows.where((columns) {
+        final validGPSTimeCol =
+            ((columns[columnG]?.value as TextCellValue?)?.value.text ?? '')
+                    .trim() ==
+                gpsTimeString;
 
-      return validGPSTimeCol;
-    }).toList();
+        return validGPSTimeCol;
+      }).toList();
 
-    final groupRows = selectRows.groupListsBy(
-        (columns) => (columns[columnF]?.value as TextCellValue).value.text);
+      final groupRows = selectRows.groupListsBy(
+          (columns) => (columns[columnF]?.value as TextCellValue).value.text);
 
-    final tabs = _getRandomTabsByPlan(groupRows);
+      tabs = _getRandomTabsByPlan(groupRows);
 
-    await Future.forEach(tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+      showConfirmOpenTabs();
+    } catch (error) {
+      errorMessage = error.toString();
+      tabs = null;
+    }
+  }
+
+  void showConfirmOpenTabs() {
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  Future<void> confirmOpenTabs(bool? result) async {
+    if (result ?? false) {
+      await Future.forEach(
+          tabs!, (tab) async => await _launchUrl(Uri.parse(tab)));
+    }
   }
 }

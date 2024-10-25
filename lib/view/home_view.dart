@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:cpm_auto_click/shared/widgets/dialogs/app_alert_dialog.dart';
+import 'package:cpm_auto_click/shared/widgets/dialogs/app_confirm_dialog.dart';
 import 'package:cpm_auto_click/shared/widgets/gap.dart';
 import 'package:cpm_auto_click/view/home_view_model.dart';
 import 'package:file_picker/file_picker.dart';
@@ -149,6 +150,15 @@ class _HomeViewState extends State<HomeView> {
         context: context,
         builder: (context) => AppAlertDialog(content: Text(errorMessage)),
       );
+      return;
+    }
+
+    if (_homeViewModel.tabs != null) {
+      showDialog(
+        context: context,
+        builder: (context) => AppConfirmDialog(
+            content: Text('Xác nhận mở ${_homeViewModel.tabs!.length} tabs')),
+      ).then((result) => _homeViewModel.confirmOpenTabs(result as bool?));
     }
   }
 
@@ -237,7 +247,7 @@ class _HomeViewState extends State<HomeView> {
       return showInvalidInputData();
     }
 
-    _homeViewModel.openTabWebInExcelByPlan(
+    _homeViewModel.calculateTabWebInExcelByPlan(
       excelFile: _excelFile!,
       sheetName: sheetName,
       gpsTime: _gpsTime!,
