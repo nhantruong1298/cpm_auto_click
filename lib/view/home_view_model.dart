@@ -2,69 +2,64 @@ import 'dart:io';
 import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:cpm_auto_click/model/plan.dart';
+import 'package:cpm_auto_click/utils/date_formatter.dart';
 import 'package:excel/excel.dart';
 
 import 'package:flutter/foundation.dart';
-import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class HomeViewModel with ChangeNotifier {
   String? errorMessage;
   List<String>? tabs;
 
-  //*Column G (GPS Time/Ngày)
-  final columnG = 6;
-
-  //*Column H (Vào web)
-  final columnH = 7;
-
-  // //*Column I (Kết quả thực hiện)
-  // final columnI = 8;
-
-  //*Column F (tên NV)
-  final columnF = 5;
-
-  //*Column J (Kế hoạch)
-  final columnJ = 9;
-
-  String _parseDateToString(DateTime date) {
-    return DateFormat('yyyy-MM-dd').format(date).toString();
-  }
-
   Sheet? _getExcelSheet(File excelFile, String sheetName) {
     var excel = Excel.decodeBytes(excelFile.readAsBytesSync());
     return excel.sheets[sheetName];
   }
 
+  bool checkValidGPSDate(
+      {required DateTime? gpsDate,
+      required DateTime start,
+      required DateTime end}) {
+    if (gpsDate == null) return false;
+
+    return gpsDate.compareTo(start) >= 0 && gpsDate.compareTo(end) <= 0;
+  }
+
   Future<void> openTabWebInExcelByNumber({
     required File excelFile,
     required String sheetName,
-    required DateTime gpsTime,
+    required DateTime start,
+    required DateTime end,
     required int numberOfTab,
+    required int colGPS,
+    required int colWeb,
+    required int colNameStaff,
   }) async {
-    var sheet = _getExcelSheet(excelFile, sheetName);
+    final sheet = _getExcelSheet(excelFile, sheetName);
 
     if (sheet == null) {
       errorMessage = 'Tên sheet không tồn tại';
       return notifyListeners();
     }
 
-    final gpsTimeString = _parseDateToString(gpsTime);
-
     try {
-      final selectRows = sheet.rows.where((columns) {
-        final validGPSTimeCol =
-            ((columns[columnG]?.value as TextCellValue?)?.value.text ?? '')
-                    .trim() ==
-                gpsTimeString;
+      final selectRows = sheet.rows.where((cols) {
+        final gpsDate = DateFormatter.parse(
+            ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
 
-        return validGPSTimeCol;
+        return checkValidGPSDate(gpsDate: gpsDate, start: start, end: end);
       }).toList();
 
-      final groupRows = selectRows.groupListsBy(
-          (columns) => (columns[columnF]?.value as TextCellValue).value.text);
+      // Group staff by name
+      final staffGroup = selectRows.groupListsBy(
+          (cols) => (cols[colNameStaff]?.value as TextCellValue).value.text);
 
-      final tabs = _getRandomTabsByNumber(groupRows, numberOfTab);
+      final tabs = _getRandomTabsByNumber(
+        staffGroup,
+        numberOfTab,
+        colWeb: colWeb,
+      );
       await Future.forEach(
           tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
     } catch (error) {
@@ -75,13 +70,14 @@ class HomeViewModel with ChangeNotifier {
 
   List<String> _getRandomTabsByNumber(
     Map<String?, List<List<Data?>>> groupRows,
-    int numberOfTab,
-  ) {
+    int numberOfTab, {
+    required int colWeb,
+  }) {
     String? getRandomTab(List<List<Data?>> rows) {
       final randomIndex = Random().nextInt(rows.length);
 
       final hyperlink =
-          (rows[randomIndex][columnH]?.value as FormulaCellValue).formula;
+          (rows[randomIndex][colWeb]?.value as FormulaCellValue).formula;
 
       final url = (hyperlink
           .split('"')
@@ -129,14 +125,21 @@ class HomeViewModel with ChangeNotifier {
     }
   }
 
-  List<String> _getRandomTabsByPlan(Map<String?, List<List<Data?>>> groupRows) {
+  List<String> _getRandomTabsByPlan(
+    Map<String?, List<List<Data?>>> staffGroup, {
+    required int indexColPlan,
+    required int indexColWeb,
+  }) {
     List<List<Data?>> selectedRows = [];
 
-    groupRows.forEach((_, rows) {
+    // get rows for each staff
+    staffGroup.forEach((_, rows) {
       String plan = '';
 
       try {
-        plan = (rows.first[columnJ]?.value as TextCellValue?)?.value.text ?? '';
+        plan =
+            (rows.first[indexColPlan]?.value as TextCellValue?)?.value.text ??
+                '';
         plan = plan.toLowerCase().trim();
       } catch (_) {
         plan = '';
@@ -158,7 +161,7 @@ class HomeViewModel with ChangeNotifier {
     });
 
     return selectedRows.map((row) {
-      final hyperlink = (row[columnH]?.value as FormulaCellValue).formula;
+      final hyperlink = (row[indexColWeb]?.value as FormulaCellValue).formula;
 
       final url = (hyperlink
           .split('"')
@@ -171,36 +174,43 @@ class HomeViewModel with ChangeNotifier {
   Future<void> calculateTabWebInExcelByPlan({
     required File excelFile,
     required String sheetName,
-    required DateTime gpsTime,
+    required DateTime start,
+    required DateTime end,
+    required int colGPS,
+    required int colWeb,
+    required int colNameStaff,
+    required int colPlan,
   }) async {
-    var sheet = _getExcelSheet(excelFile, sheetName);
+    final sheet = _getExcelSheet(excelFile, sheetName);
 
     if (sheet == null) {
       errorMessage = 'Tên sheet không tồn tại';
       return notifyListeners();
     }
 
-    final gpsTimeString = _parseDateToString(gpsTime);
-
     try {
-      final selectRows = sheet.rows.where((columns) {
-        final validGPSTimeCol =
-            ((columns[columnG]?.value as TextCellValue?)?.value.text ?? '')
-                    .trim() ==
-                gpsTimeString;
+      final selectRows = sheet.rows.where((cols) {
+        final gpsDate = DateFormatter.parse(
+            ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
 
-        return validGPSTimeCol;
+        return checkValidGPSDate(gpsDate: gpsDate, start: start, end: end);
       }).toList();
 
-      final groupRows = selectRows.groupListsBy(
-          (columns) => (columns[columnF]?.value as TextCellValue).value.text);
+      // group by name staff
+      final staffGroup = selectRows.groupListsBy(
+          (cols) => (cols[colNameStaff]?.value as TextCellValue).value.text);
 
-      tabs = _getRandomTabsByPlan(groupRows);
+      tabs = _getRandomTabsByPlan(
+        staffGroup,
+        indexColPlan: colPlan,
+        indexColWeb: colWeb,
+      );
 
       showConfirmOpenTabs();
     } catch (error) {
       errorMessage = error.toString();
       tabs = null;
+      notifyListeners();
     }
   }
 
@@ -213,6 +223,59 @@ class HomeViewModel with ChangeNotifier {
     if (result ?? false) {
       await Future.forEach(
           tabs!, (tab) async => await _launchUrl(Uri.parse(tab)));
+    }
+  }
+
+  Future<void> openTabByNameAndPercent(
+      {required String nameStaff,
+      required int percentTab,
+      required File excelFile,
+      required String sheetName,
+      required DateTime start,
+      required DateTime end,
+      required int colGPS,
+      required int colNameStaff,
+      required int colWeb}) async {
+    final sheet = _getExcelSheet(excelFile, sheetName);
+
+    if (sheet == null) {
+      errorMessage = 'Tên sheet không tồn tại';
+      return notifyListeners();
+    }
+
+    try {
+      final selectRows = sheet.rows.where((cols) {
+        final gpsDate = DateFormatter.parse(
+            ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
+
+        return checkValidGPSDate(gpsDate: gpsDate, start: start, end: end);
+      }).toList();
+
+      // group by name staff
+      final staffGroup = selectRows.groupListsBy(
+          (cols) => (cols[colNameStaff]?.value as TextCellValue).value.text);
+
+      // remove another staff
+      staffGroup.removeWhere((key, _) =>
+          key!.toLowerCase().toString() != nameStaff.toLowerCase().toString());
+
+      if (staffGroup.isEmpty) {
+        throw 'Không tìm thấy tên nhân viên.';
+      }
+
+      final staffData = staffGroup.entries.toList().first.value;
+
+      tabs = _getRandomTabsByNumber(
+        staffGroup,
+        (percentTab * staffData.length / 100).round(),
+        colWeb: colWeb,
+      );
+
+      showConfirmOpenTabs();
+    } catch (error) {
+      errorMessage = error.toString();
+      tabs = null;
+      notifyListeners();
     }
   }
 }

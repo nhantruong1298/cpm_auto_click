@@ -1,8 +1,10 @@
 import 'dart:io';
 
-import 'package:cpm_auto_click/shared/widgets/dialogs/app_alert_dialog.dart';
-import 'package:cpm_auto_click/shared/widgets/dialogs/app_confirm_dialog.dart';
+import 'package:cpm_auto_click/shared/widgets/button/app_button.dart';
+import 'package:cpm_auto_click/shared/widgets/dialog/app_alert_dialog.dart';
+import 'package:cpm_auto_click/shared/widgets/dialog/app_confirm_dialog.dart';
 import 'package:cpm_auto_click/shared/widgets/gap.dart';
+import 'package:cpm_auto_click/utils/date_formatter.dart';
 import 'package:cpm_auto_click/view/home_view_model.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -20,15 +22,30 @@ class _HomeViewState extends State<HomeView> {
 
   late TextEditingController _sheetNameTextController;
   late TextEditingController _numberOfTabTextController;
+  late TextEditingController _nameStaffTextController;
+  late TextEditingController _percentTabsTextEditingController;
+
+  late TextEditingController _colWebTextController;
+  late TextEditingController _colNameStaffTextController;
+  late TextEditingController _colGPSTextController;
+  late TextEditingController _colPlanTextController;
+
   File? _excelFile;
-  DateTime? _gpsTime;
+  DateTimeRange? _gpsRangeTime;
 
   @override
   void initState() {
     super.initState();
 
-    _sheetNameTextController = TextEditingController();
-    _numberOfTabTextController = TextEditingController();
+    _sheetNameTextController = TextEditingController(text: 'DATA_DETAILS');
+    _numberOfTabTextController = TextEditingController(text: '0');
+    _nameStaffTextController = TextEditingController();
+
+    _colGPSTextController = TextEditingController(text: 'G');
+    _colPlanTextController = TextEditingController(text: 'J');
+    _colWebTextController = TextEditingController(text: 'H');
+    _colNameStaffTextController = TextEditingController(text: 'F');
+    _percentTabsTextEditingController = TextEditingController(text: '0');
 
     WidgetsBinding.instance.addPostFrameCallback((_) =>
         _homeViewModel = context.read<HomeViewModel>()..addListener(listener));
@@ -47,24 +64,41 @@ class _HomeViewState extends State<HomeView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Wrap(
-                  children: [
-                    Text('* Mở links trong excel',
-                        style: TextStyle(fontSize: 20)),
-                    Gap(
-                      ratio: 5,
-                      direction: GapDirection.horizontal,
+                const Text('* Mở links trong excel',
+                    style: TextStyle(fontSize: 20)),
+                const Text(
+                    'Kiểm tra vị trí các cột trước khi sử dụng:'),
+                SizedBox(
+                  width: double.infinity,
+                  child: GridView(
+                    shrinkWrap: true,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      childAspectRatio: 5,
+                      crossAxisCount: 2,
                     ),
-                    _NoteForOpenWebInExcel()
-                  ],
+                    children: [
+                      _ColumnTextField(
+                          label: 'Tên NV: ',
+                          controller: _colNameStaffTextController),
+                      _ColumnTextField(
+                          label: 'GPS Time / Ngày: ',
+                          controller: _colGPSTextController),
+                      _ColumnTextField(
+                          label: 'Vào web: ',
+                          controller: _colWebTextController),
+                      _ColumnTextField(
+                          label: 'Kế hoạch: ',
+                          controller: _colPlanTextController)
+                    ],
+                  ),
                 ),
                 const Gap(ratio: 1),
                 Row(
                   children: [
-                    MaterialButton(
+                    AppButton(
                       onPressed: () => _handlePickExcelFile(),
-                      color: const Color(0xfffdc35a),
-                      child: const Text("Chọn file excel"),
+                      label: "Chọn file excel",
                     ),
                     Expanded(
                       child: Text(
@@ -76,18 +110,19 @@ class _HomeViewState extends State<HomeView> {
                   ],
                 ),
                 const Gap(ratio: 1),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  // mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    MaterialButton(
+                    AppButton(
                       onPressed: _handlePickGPSTime,
-                      color: const Color(0xfffdc35a),
-                      child: const Text("Chọn GPS Time/Ngày"),
+                      label: "Chọn GPS Time/Ngày",
                     ),
-                    Text('  ${_gpsTime?.toLocal() ?? ''}'),
+                    _GPSRangeTime(value: _gpsRangeTime),
                   ],
                 ),
-                const Gap(ratio: 1),
+                const Gap(ratio: 3),
                 TextField(
                   controller: _sheetNameTextController,
                   decoration: const InputDecoration(label: Text('Tên sheet')),
@@ -99,33 +134,39 @@ class _HomeViewState extends State<HomeView> {
                     label: Text('Số links cần mở'),
                   ),
                 ),
-                const Gap(ratio: 2),
+                const Gap(ratio: 1),
                 Wrap(
                   children: [
-                    MaterialButton(
+                    AppButton(
                       onPressed: _handleOpenTabByNumber,
-                      color: const Color(0xfffdc35a),
-                      child: const Text("Mở theo số lượng links"),
+                      label: "Mở theo số lượng links",
                     ),
                     const Gap(direction: GapDirection.horizontal),
-                    MaterialButton(
+                    AppButton(
                       onPressed: _handleOpenTabByPlan,
-                      color: const Color(0xfffdc35a),
-                      child: const Text("Mở theo kế hoạch"),
+                      label: "Mở theo kế hoạch",
                     ),
                   ],
                 ),
-                const Gap(ratio: 5),
-                Center(
-                  child: ClipOval(
-                    child: Image.asset(
-                      'assets/icon.png',
-                      width: 200,
-                      height: 200,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                )
+                const Gap(ratio: 3),
+                TextField(
+                  controller: _nameStaffTextController,
+                  decoration: const InputDecoration(label: Text('Tên NV')),
+                ),
+                const Gap(ratio: 1),
+                TextField(
+                  controller: _percentTabsTextEditingController,
+                  decoration: const InputDecoration(
+                      label: Text(
+                    '% tab muốn mở',
+                  )),
+                ),
+                const Gap(ratio: 1),
+                AppButton(
+                  onPressed: _handleOpenTabByNameAndPercent,
+                  label: "Mở theo tên NV",
+                ),
+                const Gap(ratio: 2),
               ],
             ),
           ),
@@ -138,17 +179,23 @@ class _HomeViewState extends State<HomeView> {
   void dispose() {
     _sheetNameTextController.dispose();
     _numberOfTabTextController.dispose();
+    _colGPSTextController.dispose();
+    _colPlanTextController.dispose();
+    _colWebTextController.dispose();
+    _colNameStaffTextController.dispose();
+    _nameStaffTextController.dispose();
+    _percentTabsTextEditingController.dispose();
     _homeViewModel.removeListener(listener);
+
     super.dispose();
   }
 
   void listener() {
-    var errorMessage = _homeViewModel.errorMessage;
-
-    if (errorMessage != null) {
+    if (_homeViewModel.errorMessage != null) {
       showDialog(
         context: context,
-        builder: (context) => AppAlertDialog(content: Text(errorMessage)),
+        builder: (context) =>
+            AppAlertDialog(content: Text(_homeViewModel.errorMessage!)),
       );
       return;
     }
@@ -186,22 +233,13 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<void> _handlePickGPSTime() async {
-    _gpsTime = await showDatePicker(
+    _gpsRangeTime = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2000, 1, 1),
-      lastDate: DateTime(2025, 1, 1),
+      lastDate: DateTime(2026, 1, 1),
     );
 
     setState(() {});
-  }
-
-  int? parseNumberOfTabWeb(String text) {
-    try {
-      int value = int.parse(text);
-      return value;
-    } catch (err) {
-      return null;
-    }
   }
 
   void showWarningOverloadNumberTab() {
@@ -220,14 +258,22 @@ class _HomeViewState extends State<HomeView> {
   }
 
   String get sheetName => _sheetNameTextController.text;
-  int? get numberTab =>
-      parseNumberOfTabWeb(_numberOfTabTextController.text) ?? 0;
+  int? get numberTab => int.tryParse(_numberOfTabTextController.text) ?? 0;
+
+  int? get colPlan => _colPlanTextController.text.indexColumnInExcel();
+  int? get colGPS => _colGPSTextController.text.indexColumnInExcel();
+  int? get colWeb => _colWebTextController.text.indexColumnInExcel();
+  int? get colNameStaff =>
+      _colNameStaffTextController.text.indexColumnInExcel();
 
   void _handleOpenTabByNumber() {
     if (sheetName.isEmpty ||
         numberTab == null ||
-        _gpsTime == null ||
-        _excelFile == null) {
+        _gpsRangeTime == null ||
+        _excelFile == null ||
+        colGPS == null ||
+        colWeb == null ||
+        colNameStaff == null) {
       return showInvalidInputData();
     }
 
@@ -236,47 +282,118 @@ class _HomeViewState extends State<HomeView> {
     }
 
     _homeViewModel.openTabWebInExcelByNumber(
-        excelFile: _excelFile!,
-        sheetName: sheetName,
-        gpsTime: _gpsTime!,
-        numberOfTab: numberTab!);
+      excelFile: _excelFile!,
+      sheetName: sheetName,
+      start: _gpsRangeTime!.start,
+      end: _gpsRangeTime!.end,
+      numberOfTab: numberTab!,
+      colGPS: colGPS!,
+      colNameStaff: colNameStaff!,
+      colWeb: colWeb!,
+    );
   }
 
   void _handleOpenTabByPlan() {
-    if (sheetName.isEmpty || _gpsTime == null || _excelFile == null) {
+    if (sheetName.isEmpty ||
+        _gpsRangeTime == null ||
+        _excelFile == null ||
+        colGPS == null ||
+        colWeb == null ||
+        colNameStaff == null ||
+        colPlan == null) {
       return showInvalidInputData();
     }
 
     _homeViewModel.calculateTabWebInExcelByPlan(
       excelFile: _excelFile!,
       sheetName: sheetName,
-      gpsTime: _gpsTime!,
+      start: _gpsRangeTime!.start,
+      end: _gpsRangeTime!.end,
+      colGPS: colGPS!,
+      colNameStaff: colNameStaff!,
+      colPlan: colPlan!,
+      colWeb: colWeb!,
+    );
+  }
+
+  void _handleOpenTabByNameAndPercent() {
+    final percentTab =
+        int.tryParse(_percentTabsTextEditingController.text) ?? 0;
+    final nameStaff = _nameStaffTextController.text;
+
+    if (nameStaff.isEmpty == true ||
+        percentTab == 0 ||
+        _gpsRangeTime == null ||
+        sheetName.isEmpty ||
+        _excelFile == null ||
+        colGPS == null ||
+        colWeb == null ||
+        colNameStaff == null) {
+      return showInvalidInputData();
+    }
+
+    _homeViewModel.openTabByNameAndPercent(
+      nameStaff: nameStaff,
+      percentTab: percentTab,
+      excelFile: _excelFile!,
+      sheetName: sheetName,
+      start: _gpsRangeTime!.start,
+      end: _gpsRangeTime!.end,
+      colGPS: colGPS!,
+      colNameStaff: colNameStaff!,
+      colWeb: colWeb!,
     );
   }
 }
 
-class _NoteForOpenWebInExcel extends StatelessWidget {
-  const _NoteForOpenWebInExcel({super.key});
+class _GPSRangeTime extends StatelessWidget {
+  final DateTimeRange? value;
+  const _GPSRangeTime({this.value});
 
   @override
   Widget build(BuildContext context) {
-    return const Wrap(
+    if (value == null) return const SizedBox();
+
+    final start = DateFormatter.format(value!.start);
+    final end = DateFormatter.format(value!.end);
+
+    return (start == end) ? Text('  $start') : Text('  $start  ->  $end ');
+  }
+}
+
+class _ColumnTextField extends StatelessWidget {
+  final String label;
+  final TextEditingController controller;
+
+  const _ColumnTextField({
+    required this.label,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          '''Kiểm tra vị trí các cột trước khi sử dụng:
-        Cột H: Vào web 
-        Cột F: Tên NV 
-        Cột G: GPS Time / Ngày
-        Cột J: Kế hoạch
-      ''',
-          textAlign: TextAlign.start,
-        )
+        Text(label),
+        SizedBox(
+          width: 50,
+          child: TextField(
+            controller: controller,
+            onChanged: (text) {
+              controller.text = text.toUpperCase();
+            },
+            textAlign: TextAlign.center,
+            textCapitalization: TextCapitalization.characters,
+            decoration: const InputDecoration(),
+          ),
+        ),
       ],
     );
   }
 }
 
-extension CheckExcelFile on File {
+extension on File {
   bool isExcelFile() {
     final fileExtension = path.split('.').last.toLowerCase();
     return ['xlsx', 'xlsm', 'xlsb', 'xls', 'xltx', 'xltm', 'xlts', 'xlt']
@@ -286,4 +403,49 @@ extension CheckExcelFile on File {
 
 extension on File {
   String get name => path.split('/').last.toLowerCase();
+}
+
+extension on String {
+  int? indexColumnInExcel() {
+    const mapIndex = {
+      'A': 0,
+      'B': 1,
+      'C': 2,
+      'D': 3,
+      'E': 4,
+      'F': 5,
+      'G': 6,
+      'H': 7,
+      'I': 8,
+      'J': 9,
+      'K': 10,
+      'L': 11,
+      'M': 12,
+      'N': 13,
+      'O': 14,
+      'P': 15,
+      'Q': 16,
+      'R': 17,
+      'S': 18,
+      'T': 19,
+      'U': 20,
+      'V': 21,
+      'W': 22,
+      'X': 23,
+      'Y': 24,
+      'Z': 25
+    };
+    return mapIndex[this];
+  }
+}
+
+extension on int {
+  int? tryParse(String text) {
+    try {
+      int value = int.parse(text);
+      return value;
+    } catch (err) {
+      return null;
+    }
+  }
 }
