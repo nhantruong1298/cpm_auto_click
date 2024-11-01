@@ -34,7 +34,7 @@ class HomeViewModel with ChangeNotifier {
     required int numberOfTab,
     required int colGPS,
     required int colWeb,
-    required int colNameStaff,
+    required int colStaffId,
   }) async {
     final sheet = _getExcelSheet(excelFile, sheetName);
 
@@ -53,7 +53,7 @@ class HomeViewModel with ChangeNotifier {
 
       // Group staff by name
       final staffGroup = selectRows.groupListsBy(
-          (cols) => (cols[colNameStaff]?.value as TextCellValue).value.text);
+          (cols) => (cols[colStaffId]?.value as TextCellValue).value.text);
 
       final tabs = _getRandomTabsByNumber(
         staffGroup,
@@ -152,7 +152,13 @@ class HomeViewModel with ChangeNotifier {
         _ => 0.0
       };
 
-      final numberOfTabs = (ratio * rows.length).round();
+      int numberOfTabs;
+
+      if (plan == Plan.red) {
+        numberOfTabs = (ratio * rows.length).ceil();
+      } else {
+        numberOfTabs = (ratio * rows.length).round();
+      }
 
       final randomRows = List.of(rows);
       randomRows.shuffle();
@@ -178,7 +184,7 @@ class HomeViewModel with ChangeNotifier {
     required DateTime end,
     required int colGPS,
     required int colWeb,
-    required int colNameStaff,
+    required int colStaffId,
     required int colPlan,
   }) async {
     final sheet = _getExcelSheet(excelFile, sheetName);
@@ -197,8 +203,9 @@ class HomeViewModel with ChangeNotifier {
       }).toList();
 
       // group by name staff
-      final staffGroup = selectRows.groupListsBy(
-          (cols) => (cols[colNameStaff]?.value as TextCellValue).value.text);
+      final staffGroup = selectRows.groupListsBy((cols) {
+        return (cols[colStaffId]?.value as TextCellValue).value.text;
+      });
 
       tabs = _getRandomTabsByPlan(
         staffGroup,
@@ -227,14 +234,14 @@ class HomeViewModel with ChangeNotifier {
   }
 
   Future<void> openTabByNameAndPercent(
-      {required String nameStaff,
+      {required String staffId,
       required int percentTab,
       required File excelFile,
       required String sheetName,
       required DateTime start,
       required DateTime end,
       required int colGPS,
-      required int colNameStaff,
+      required int colStaffId,
       required int colWeb}) async {
     final sheet = _getExcelSheet(excelFile, sheetName);
 
@@ -253,14 +260,15 @@ class HomeViewModel with ChangeNotifier {
 
       // group by name staff
       final staffGroup = selectRows.groupListsBy(
-          (cols) => (cols[colNameStaff]?.value as TextCellValue).value.text);
+          (cols) => (cols[colStaffId]?.value as TextCellValue).value.text);
 
       // remove another staff
       staffGroup.removeWhere((key, _) =>
-          key!.toLowerCase().toString() != nameStaff.toLowerCase().toString());
+          key!.trim().toLowerCase().toString() !=
+          staffId.trim().toLowerCase().toString());
 
       if (staffGroup.isEmpty) {
-        throw 'Không tìm thấy tên nhân viên.';
+        throw 'Không tìm thấy mã NV.';
       }
 
       final staffData = staffGroup.entries.toList().first.value;

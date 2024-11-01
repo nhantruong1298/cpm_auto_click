@@ -22,11 +22,11 @@ class _HomeViewState extends State<HomeView> {
 
   late TextEditingController _sheetNameTextController;
   late TextEditingController _numberOfTabTextController;
-  late TextEditingController _nameStaffTextController;
+  late TextEditingController _staffIdTextController;
   late TextEditingController _percentTabsTextEditingController;
 
   late TextEditingController _colWebTextController;
-  late TextEditingController _colNameStaffTextController;
+  late TextEditingController _colStaffIdTextController;
   late TextEditingController _colGPSTextController;
   late TextEditingController _colPlanTextController;
 
@@ -39,12 +39,12 @@ class _HomeViewState extends State<HomeView> {
 
     _sheetNameTextController = TextEditingController(text: 'DATA_DETAILS');
     _numberOfTabTextController = TextEditingController(text: '0');
-    _nameStaffTextController = TextEditingController();
+    _staffIdTextController = TextEditingController();
 
     _colGPSTextController = TextEditingController(text: 'G');
     _colPlanTextController = TextEditingController(text: 'J');
     _colWebTextController = TextEditingController(text: 'H');
-    _colNameStaffTextController = TextEditingController(text: 'F');
+    _colStaffIdTextController = TextEditingController(text: 'E');
     _percentTabsTextEditingController = TextEditingController(text: '0');
 
     WidgetsBinding.instance.addPostFrameCallback((_) =>
@@ -79,8 +79,8 @@ class _HomeViewState extends State<HomeView> {
                     ),
                     children: [
                       _ColumnTextField(
-                          label: 'Tên NV: ',
-                          controller: _colNameStaffTextController),
+                          label: 'Mã NV: ',
+                          controller: _colStaffIdTextController),
                       _ColumnTextField(
                           label: 'GPS Time / Ngày: ',
                           controller: _colGPSTextController),
@@ -150,8 +150,8 @@ class _HomeViewState extends State<HomeView> {
                 ),
                 const Gap(ratio: 3),
                 TextField(
-                  controller: _nameStaffTextController,
-                  decoration: const InputDecoration(label: Text('Tên NV')),
+                  controller: _staffIdTextController,
+                  decoration: const InputDecoration(label: Text('Mã NV')),
                 ),
                 const Gap(ratio: 1),
                 TextField(
@@ -182,8 +182,8 @@ class _HomeViewState extends State<HomeView> {
     _colGPSTextController.dispose();
     _colPlanTextController.dispose();
     _colWebTextController.dispose();
-    _colNameStaffTextController.dispose();
-    _nameStaffTextController.dispose();
+    _colStaffIdTextController.dispose();
+    _staffIdTextController.dispose();
     _percentTabsTextEditingController.dispose();
     _homeViewModel.removeListener(listener);
 
@@ -263,8 +263,7 @@ class _HomeViewState extends State<HomeView> {
   int? get colPlan => _colPlanTextController.text.indexColumnInExcel();
   int? get colGPS => _colGPSTextController.text.indexColumnInExcel();
   int? get colWeb => _colWebTextController.text.indexColumnInExcel();
-  int? get colNameStaff =>
-      _colNameStaffTextController.text.indexColumnInExcel();
+  int? get colStaffId => _colStaffIdTextController.text.indexColumnInExcel();
 
   void _handleOpenTabByNumber() {
     if (sheetName.isEmpty ||
@@ -273,7 +272,7 @@ class _HomeViewState extends State<HomeView> {
         _excelFile == null ||
         colGPS == null ||
         colWeb == null ||
-        colNameStaff == null) {
+        colStaffId == null) {
       return showInvalidInputData();
     }
 
@@ -288,7 +287,7 @@ class _HomeViewState extends State<HomeView> {
       end: _gpsRangeTime!.end,
       numberOfTab: numberTab!,
       colGPS: colGPS!,
-      colNameStaff: colNameStaff!,
+      colStaffId: colStaffId!,
       colWeb: colWeb!,
     );
   }
@@ -299,7 +298,7 @@ class _HomeViewState extends State<HomeView> {
         _excelFile == null ||
         colGPS == null ||
         colWeb == null ||
-        colNameStaff == null ||
+        colStaffId == null ||
         colPlan == null) {
       return showInvalidInputData();
     }
@@ -310,7 +309,7 @@ class _HomeViewState extends State<HomeView> {
       start: _gpsRangeTime!.start,
       end: _gpsRangeTime!.end,
       colGPS: colGPS!,
-      colNameStaff: colNameStaff!,
+      colStaffId: colStaffId!,
       colPlan: colPlan!,
       colWeb: colWeb!,
     );
@@ -319,28 +318,28 @@ class _HomeViewState extends State<HomeView> {
   void _handleOpenTabByNameAndPercent() {
     final percentTab =
         int.tryParse(_percentTabsTextEditingController.text) ?? 0;
-    final nameStaff = _nameStaffTextController.text;
+    final staffId = _staffIdTextController.text;
 
-    if (nameStaff.isEmpty == true ||
+    if (staffId.isEmpty == true ||
         percentTab == 0 ||
         _gpsRangeTime == null ||
         sheetName.isEmpty ||
         _excelFile == null ||
         colGPS == null ||
         colWeb == null ||
-        colNameStaff == null) {
+        colStaffId == null) {
       return showInvalidInputData();
     }
 
     _homeViewModel.openTabByNameAndPercent(
-      nameStaff: nameStaff,
+      staffId: staffId,
       percentTab: percentTab,
       excelFile: _excelFile!,
       sheetName: sheetName,
       start: _gpsRangeTime!.start,
       end: _gpsRangeTime!.end,
       colGPS: colGPS!,
-      colNameStaff: colNameStaff!,
+      colStaffId: colStaffId!,
       colWeb: colWeb!,
     );
   }
@@ -381,7 +380,7 @@ class _ColumnTextField extends StatelessWidget {
           child: TextField(
             controller: controller,
             onChanged: (text) {
-              controller.text = text.toUpperCase();
+              controller.text = text.trim().toUpperCase();
             },
             textAlign: TextAlign.center,
             textCapitalization: TextCapitalization.characters,
@@ -439,13 +438,13 @@ extension on String {
   }
 }
 
-extension on int {
-  int? tryParse(String text) {
-    try {
-      int value = int.parse(text);
-      return value;
-    } catch (err) {
-      return null;
-    }
-  }
-}
+// extension on int {
+//   int? tryParse(String text) {
+//     try {
+//       int value = int.parse(text);
+//       return value;
+//     } catch (err) {
+//       return null;
+//     }
+//   }
+// }
