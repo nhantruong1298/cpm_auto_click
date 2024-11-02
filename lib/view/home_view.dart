@@ -164,7 +164,7 @@ class _HomeViewState extends State<HomeView> {
                 const Gap(ratio: 1),
                 AppButton(
                   onPressed: _handleOpenTabByNameAndPercent,
-                  label: "Mở theo tên NV",
+                  label: "Mở theo mã NV",
                 ),
                 const Gap(ratio: 2),
               ],
