@@ -43,3 +43,12 @@ app.*.map.json
 /android/app/release
 launch.json
 /installers
+
+./lib/packages
+
+# Ignore Excel packages
+
+# FVM Version Cache
+.fvm/
+.fvmrc
+settings.json

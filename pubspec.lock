@@ -100,11 +100,9 @@ packages:
   excel:
     dependency: "direct main"
     description:
-      path: "."
-      ref: HEAD
-      resolved-ref: ebacedf7980c71e2b1f224f04e02f70c8afc186a
-      url: "https://github.com/nhantruong1298/excel.git"
-    source: git
+      path: "packages/excel"
+      relative: true
+    source: path
     version: "4.0.6"
   fake_async:
     dependency: transitive

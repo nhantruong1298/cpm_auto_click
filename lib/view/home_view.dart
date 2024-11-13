@@ -276,7 +276,7 @@ class _HomeViewState extends State<HomeView> {
       return showInvalidInputData();
     }
 
-    if (numberTab! > 50 || numberTab == 0) {
+    if (numberTab! > 100 || numberTab == 0) {
       return showWarningOverloadNumberTab();
     }
 
