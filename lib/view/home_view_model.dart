@@ -3,28 +3,33 @@ import 'dart:math';
 import 'package:collection/collection.dart';
 import 'package:cpm_auto_click/model/plan.dart';
 import 'package:cpm_auto_click/utils/date_formatter.dart';
+import 'package:cpm_auto_click/view/home_view_state.dart';
 import 'package:excel/excel.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../utils/common.dart';
+
 class HomeViewModel with ChangeNotifier {
-  String? errorMessage;
-  List<String>? tabs;
+  HomeViewState _state = HomeViewInitial();
+  HomeViewState get state => _state;
 
-  Sheet? _getExcelSheet(File excelFile, String sheetName) {
-    var excel = Excel.decodeBytes(excelFile.readAsBytesSync());
-    return excel.sheets[sheetName];
+  Future<Sheet?> _getExcelSheet(File excelFile, String sheetName) async {
+    // This is a compute-intensive operation, so we run it in a separate isolate.
+    return await compute(_getExcelSheetIsolate, {
+      'bytes': excelFile.readAsBytesSync(),
+      'sheetName': sheetName,
+    });
   }
 
-  bool checkValidGPSDate(
-      {required DateTime? gpsDate,
-      required DateTime start,
-      required DateTime end}) {
-    if (gpsDate == null) return false;
-
-    return gpsDate.compareTo(start) >= 0 && gpsDate.compareTo(end) <= 0;
+  // This must be a top-level function or a static method to be used with compute.
+  static Sheet? _getExcelSheetIsolate(Map<String, Object> params) {
+    final excel = Excel.decodeBytes(params['bytes'] as List<int>);
+    return excel.sheets[params['sheetName'] as String];
   }
+
+ 
 
   Future<void> openTabWebInExcelByNumber({
     required File excelFile,
@@ -36,17 +41,20 @@ class HomeViewModel with ChangeNotifier {
     required int colWeb,
     required int colStaffId,
   }) async {
-    final sheet = _getExcelSheet(excelFile, sheetName);
-
-    if (sheet == null) {
-      errorMessage = 'Tên sheet không tồn tại';
-      return notifyListeners();
-    }
+    _state = HomeViewLoading();
+    notifyListeners();
 
     try {
-      final selectRows = sheet.rows.where((cols) {
+      final sheet = await _getExcelSheet(excelFile, sheetName);
+
+      if (sheet == null) {
+        _state = const HomeViewError('Không tìm thấy file');
+        return notifyListeners();
+      }
+
+      final selectRows = sheet.rows.where((row) {
         final gpsDate = DateFormatter.parse(
-            ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
+            ((row[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
 
         return checkValidGPSDate(gpsDate: gpsDate, start: start, end: end);
       }).toList();
@@ -55,17 +63,24 @@ class HomeViewModel with ChangeNotifier {
       final staffGroup = selectRows.groupListsBy(
           (cols) => (cols[colStaffId]?.value as TextCellValue).value.text);
 
-      final tabs = _getRandomTabsByNumber(
-        staffGroup,
-        numberOfTab,
-        colWeb: colWeb,
-      );
-      await Future.forEach(
-          tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+      final tabs =
+          _getRandomTabsByNumber(staffGroup, numberOfTab, colWeb: colWeb);
+      // await Future.forEach(
+      //     tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+
+      _state = HomeViewSuccess(tabs, showConfirmDialog: false);
+      notifyListeners();
     } catch (error) {
-      errorMessage = error.toString();
+      _state = HomeViewError(error.toString());
       notifyListeners();
     }
+  }
+
+  Map<String?, List<List<Data?>>> _groupRowsByStaffId(
+      List<List<Data?>> rows, int indexStaffId) {
+    return rows.groupListsBy((row) {
+      return (row[indexStaffId]?.value as TextCellValue).value.text;
+    });
   }
 
   List<String> _getRandomTabsByNumber(
@@ -120,7 +135,7 @@ class HomeViewModel with ChangeNotifier {
   Future<void> _launchUrl(Uri uri) async {
     await Future.delayed(const Duration(milliseconds: 300));
     if (!await launchUrl(uri, webOnlyWindowName: '_self')) {
-      errorMessage = 'Không thể mở tab: $uri';
+      _state = HomeViewError('Không thể mở tab: $uri');
       notifyListeners();
     }
   }
@@ -187,14 +202,17 @@ class HomeViewModel with ChangeNotifier {
     required int colStaffId,
     required int colPlan,
   }) async {
-    final sheet = _getExcelSheet(excelFile, sheetName);
-
-    if (sheet == null) {
-      errorMessage = 'Tên sheet không tồn tại';
-      return notifyListeners();
-    }
+    _state = HomeViewLoading();
+    notifyListeners();
 
     try {
+      final sheet = await _getExcelSheet(excelFile, sheetName);
+
+      if (sheet == null) {
+        _state = const HomeViewError('Tên sheet không tồn tại');
+        return notifyListeners();
+      }
+
       final selectRows = sheet.rows.where((cols) {
         final gpsDate = DateFormatter.parse(
             ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
@@ -207,29 +225,29 @@ class HomeViewModel with ChangeNotifier {
         return (cols[colStaffId]?.value as TextCellValue).value.text;
       });
 
-      tabs = _getRandomTabsByPlan(
+      final tabs = _getRandomTabsByPlan(
         staffGroup,
         indexColPlan: colPlan,
         indexColWeb: colWeb,
       );
 
-      showConfirmOpenTabs();
+      _state = HomeViewSuccess(tabs);
+      notifyListeners();
     } catch (error) {
-      errorMessage = error.toString();
-      tabs = null;
+      _state = HomeViewError(error.toString());
       notifyListeners();
     }
   }
 
-  void showConfirmOpenTabs() {
-    errorMessage = null;
-    notifyListeners();
-  }
-
-  Future<void> confirmOpenTabs(bool? result) async {
-    if (result ?? false) {
-      await Future.forEach(
-          tabs!, (tab) async => await _launchUrl(Uri.parse(tab)));
+  Future<void> onOpenTabs(List<String> tabs) async {
+    try {
+      if (tabs.isNotEmpty) {
+        await Future.forEach(
+            tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+      }
+    } catch (error) {
+      _state = HomeViewError(error.toString());
+      notifyListeners();
     }
   }
 
@@ -243,14 +261,17 @@ class HomeViewModel with ChangeNotifier {
       required int colGPS,
       required int colStaffId,
       required int colWeb}) async {
-    final sheet = _getExcelSheet(excelFile, sheetName);
-
-    if (sheet == null) {
-      errorMessage = 'Tên sheet không tồn tại';
-      return notifyListeners();
-    }
+    _state = HomeViewLoading();
+    notifyListeners();
 
     try {
+      final sheet = await _getExcelSheet(excelFile, sheetName);
+
+      if (sheet == null) {
+        _state = const HomeViewError('Không tìm thấy file');
+        return notifyListeners();
+      }
+
       final selectRows = sheet.rows.where((cols) {
         final gpsDate = DateFormatter.parse(
             ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
@@ -273,16 +294,16 @@ class HomeViewModel with ChangeNotifier {
 
       final staffData = staffGroup.entries.toList().first.value;
 
-      tabs = _getRandomTabsByNumber(
+      final tabs = _getRandomTabsByNumber(
         staffGroup,
         (percentTab * staffData.length / 100).round(),
         colWeb: colWeb,
       );
 
-      showConfirmOpenTabs();
+      _state = HomeViewSuccess(tabs);
+      notifyListeners();
     } catch (error) {
-      errorMessage = error.toString();
-      tabs = null;
+      _state = HomeViewError(error.toString());
       notifyListeners();
     }
   }

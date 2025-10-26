@@ -2,13 +2,16 @@ import 'dart:io';
 
 import 'package:cpm_auto_click/shared/widgets/button/app_button.dart';
 import 'package:cpm_auto_click/shared/widgets/dialog/app_alert_dialog.dart';
-import 'package:cpm_auto_click/shared/widgets/dialog/app_confirm_dialog.dart';
 import 'package:cpm_auto_click/shared/widgets/gap.dart';
 import 'package:cpm_auto_click/utils/date_formatter.dart';
 import 'package:cpm_auto_click/view/home_view_model.dart';
+import 'package:cpm_auto_click/view/home_view_state.dart';
+import 'package:cpm_auto_click/view/widgets/loading_view.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../shared/widgets/dialog/app_confirm_dialog.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -41,10 +44,10 @@ class _HomeViewState extends State<HomeView> {
     _numberOfTabTextController = TextEditingController(text: '0');
     _staffIdTextController = TextEditingController();
 
-    _colGPSTextController = TextEditingController(text: 'G');
-    _colPlanTextController = TextEditingController(text: 'J');
-    _colWebTextController = TextEditingController(text: 'H');
-    _colStaffIdTextController = TextEditingController(text: 'E');
+    _colGPSTextController = TextEditingController(text: '');
+    _colPlanTextController = TextEditingController(text: '');
+    _colWebTextController = TextEditingController(text: '');
+    _colStaffIdTextController = TextEditingController(text: '');
     _percentTabsTextEditingController = TextEditingController(text: '0');
 
     WidgetsBinding.instance.addPostFrameCallback((_) =>
@@ -53,121 +56,125 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<HomeViewModel>().state;
+
     return Scaffold(
       body: SizedBox(
         width: double.infinity,
         height: double.infinity,
-        child: Container(
-          color: Colors.grey.shade100,
-          padding: const EdgeInsets.all(16.0),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('* Mở links trong excel',
-                    style: TextStyle(fontSize: 20)),
-                const Text(
-                    'Kiểm tra vị trí các cột trước khi sử dụng:'),
-                SizedBox(
-                  width: double.infinity,
-                  child: GridView(
-                    shrinkWrap: true,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      childAspectRatio: 5,
-                      crossAxisCount: 2,
+        child: LoadingView(
+          isLoading: state is HomeViewLoading,
+          child: Container(
+            color: Colors.grey.shade100,
+            padding: const EdgeInsets.all(16.0),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('* Mở links trong excel',
+                      style: TextStyle(fontSize: 20)),
+                  const Text(
+                      'Kiểm tra vị trí các cột trước khi sử dụng:'),
+                  SizedBox(
+                    width: double.infinity,
+                    child: GridView(
+                      shrinkWrap: true,
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        childAspectRatio: 5,
+                        crossAxisCount: 2,
+                      ),
+                      children: [
+                        _ColumnTextField(
+                            label: 'Mã NV: ',
+                            controller: _colStaffIdTextController),
+                        _ColumnTextField(
+                            label: 'GPS Time / Ngày: ',
+                            controller: _colGPSTextController),
+                        _ColumnTextField(
+                            label: 'Vào web: ',
+                            controller: _colWebTextController),
+                        _ColumnTextField(
+                            label: 'Kế hoạch: ',
+                            controller: _colPlanTextController)
+                      ],
                     ),
+                  ),
+                  const Gap(ratio: 1),
+                  Row(
                     children: [
-                      _ColumnTextField(
-                          label: 'Mã NV: ',
-                          controller: _colStaffIdTextController),
-                      _ColumnTextField(
-                          label: 'GPS Time / Ngày: ',
-                          controller: _colGPSTextController),
-                      _ColumnTextField(
-                          label: 'Vào web: ',
-                          controller: _colWebTextController),
-                      _ColumnTextField(
-                          label: 'Kế hoạch: ',
-                          controller: _colPlanTextController)
+                      AppButton(
+                          onPressed: () => _handlePickExcelFile(),
+                          label: "Chọn file excel"),
+                      Expanded(
+                        child: Text(
+                          '  ${_excelFile?.name ?? ''}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                const Gap(ratio: 1),
-                Row(
-                  children: [
-                    AppButton(
-                      onPressed: () => _handlePickExcelFile(),
-                      label: "Chọn file excel",
-                    ),
-                    Expanded(
-                      child: Text(
-                        '  ${_excelFile?.name ?? ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  const Gap(ratio: 1),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    // mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      AppButton(
+                        onPressed: _handlePickGPSTime,
+                        label: "Chọn GPS Time/Ngày",
                       ),
-                    ),
-                  ],
-                ),
-                const Gap(ratio: 1),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  // mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    AppButton(
-                      onPressed: _handlePickGPSTime,
-                      label: "Chọn GPS Time/Ngày",
-                    ),
-                    _GPSRangeTime(value: _gpsRangeTime),
-                  ],
-                ),
-                const Gap(ratio: 3),
-                TextField(
-                  controller: _sheetNameTextController,
-                  decoration: const InputDecoration(label: Text('Tên sheet')),
-                ),
-                const Gap(ratio: 1),
-                TextField(
-                  controller: _numberOfTabTextController,
-                  decoration: const InputDecoration(
-                    label: Text('Số links cần mở'),
+                      _GPSRangeTime(value: _gpsRangeTime),
+                    ],
                   ),
-                ),
-                const Gap(ratio: 1),
-                Wrap(
-                  children: [
-                    AppButton(
-                      onPressed: _handleOpenTabByNumber,
-                      label: "Mở theo số lượng links",
+                  const Gap(ratio: 3),
+                  TextField(
+                    controller: _sheetNameTextController,
+                    decoration: const InputDecoration(label: Text('Tên sheet')),
+                  ),
+                  const Gap(ratio: 1),
+                  TextField(
+                    controller: _numberOfTabTextController,
+                    decoration: const InputDecoration(
+                      label: Text('Số links cần mở'),
                     ),
-                    const Gap(direction: GapDirection.horizontal),
-                    AppButton(
-                      onPressed: _handleOpenTabByPlan,
-                      label: "Mở theo kế hoạch",
-                    ),
-                  ],
-                ),
-                const Gap(ratio: 3),
-                TextField(
-                  controller: _staffIdTextController,
-                  decoration: const InputDecoration(label: Text('Mã NV')),
-                ),
-                const Gap(ratio: 1),
-                TextField(
-                  controller: _percentTabsTextEditingController,
-                  decoration: const InputDecoration(
-                      label: Text(
-                    '% tab muốn mở',
-                  )),
-                ),
-                const Gap(ratio: 1),
-                AppButton(
-                  onPressed: _handleOpenTabByNameAndPercent,
-                  label: "Mở theo mã NV",
-                ),
-                const Gap(ratio: 2),
-              ],
+                  ),
+                  const Gap(ratio: 1),
+                  Wrap(
+                    children: [
+                      AppButton(
+                        onPressed: _handleOpenTabByNumber,
+                        label: "Mở theo số lượng links",
+                      ),
+                      const Gap(direction: GapDirection.horizontal),
+                      AppButton(
+                        onPressed: _handleOpenTabByPlan,
+                        label: "Mở theo kế hoạch",
+                      ),
+                    ],
+                  ),
+                  const Gap(ratio: 3),
+                  TextField(
+                    controller: _staffIdTextController,
+                    decoration: const InputDecoration(label: Text('Mã NV')),
+                  ),
+                  const Gap(ratio: 1),
+                  TextField(
+                    controller: _percentTabsTextEditingController,
+                    decoration: const InputDecoration(
+                        label: Text(
+                      '% tab muốn mở',
+                    )),
+                  ),
+                  const Gap(ratio: 1),
+                  AppButton(
+                    onPressed: _handleOpenTabByNameAndPercent,
+                    label: "Mở theo mã NV",
+                  ),
+                  const Gap(ratio: 2),
+                ],
+              ),
             ),
           ),
         ),
@@ -175,37 +182,41 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  @override
-  void dispose() {
-    _sheetNameTextController.dispose();
-    _numberOfTabTextController.dispose();
-    _colGPSTextController.dispose();
-    _colPlanTextController.dispose();
-    _colWebTextController.dispose();
-    _colStaffIdTextController.dispose();
-    _staffIdTextController.dispose();
-    _percentTabsTextEditingController.dispose();
-    _homeViewModel.removeListener(listener);
-
-    super.dispose();
-  }
-
   void listener() {
-    if (_homeViewModel.errorMessage != null) {
-      showDialog(
-        context: context,
-        builder: (context) =>
-            AppAlertDialog(content: Text(_homeViewModel.errorMessage!)),
-      );
-      return;
-    }
+    switch (_homeViewModel.state) {
+      case HomeViewSuccess():
+        {
+          final state = _homeViewModel.state as HomeViewSuccess;
+          final tabs = state.tabs;
+          if (!state.showConfirmDialog) {
+            _homeViewModel.onOpenTabs(tabs);
+            return;
+          }
 
-    if (_homeViewModel.tabs != null) {
-      showDialog(
-        context: context,
-        builder: (context) => AppConfirmDialog(
-            content: Text('Xác nhận mở ${_homeViewModel.tabs!.length} tabs')),
-      ).then((result) => _homeViewModel.confirmOpenTabs(result as bool?));
+          showDialog(
+            context: context,
+            builder: (context) => AppConfirmDialog(
+              content:
+                  Text('Bạn có chắc chắn muốn mở ${tabs.length} tab không?'),
+            ),
+          ).then((confirmed) {
+            if (confirmed == true) {
+              _homeViewModel.onOpenTabs(tabs);
+            }
+          });
+          break;
+        }
+      case HomeViewError():
+        {
+          final message = (_homeViewModel.state as HomeViewError).message;
+          showDialog(
+            context: context,
+            builder: (context) => AppAlertDialog(content: Text(message)),
+          );
+          break;
+        }
+      default:
+        break;
     }
   }
 
@@ -343,6 +354,21 @@ class _HomeViewState extends State<HomeView> {
       colWeb: colWeb!,
     );
   }
+
+  @override
+  void dispose() {
+    _sheetNameTextController.dispose();
+    _numberOfTabTextController.dispose();
+    _colGPSTextController.dispose();
+    _colPlanTextController.dispose();
+    _colWebTextController.dispose();
+    _colStaffIdTextController.dispose();
+    _staffIdTextController.dispose();
+    _percentTabsTextEditingController.dispose();
+    _homeViewModel.removeListener(listener);
+
+    super.dispose();
+  }
 }
 
 class _GPSRangeTime extends StatelessWidget {
@@ -432,7 +458,83 @@ extension on String {
       'W': 22,
       'X': 23,
       'Y': 24,
-      'Z': 25
+      'Z': 25,
+      'AA': 26,
+      'AB': 27,
+      'AC': 28,
+      'AD': 29,
+      'AE': 30,
+      'AF': 31,
+      'AG': 32,
+      'AH': 33,
+      'AI': 34,
+      'AJ': 35,
+      'AK': 36,
+      'AL': 37,
+      'AM': 38,
+      'AN': 39,
+      'AO': 40,
+      'AP': 41,
+      'AQ': 42,
+      'AR': 43,
+      'AS': 44,
+      'AT': 45,
+      'AU': 46,
+      'AV': 47,
+      'AW': 48,
+      'AX': 49,
+      'AY': 50,
+      'AZ': 51,
+      'BA': 52,
+      'BB': 53,
+      'BC': 54,
+      'BD': 55,
+      'BE': 56,
+      'BF': 57,
+      'BG': 58,
+      'BH': 59,
+      'BI': 60,
+      'BJ': 61,
+      'BK': 62,
+      'BL': 63,
+      'BM': 64,
+      'BN': 65,
+      'BO': 66,
+      'BP': 67,
+      'BQ': 68,
+      'BR': 69,
+      'BS': 70,
+      'BT': 71,
+      'BU': 72,
+      'BV': 73,
+      'BW': 74,
+      'BX': 75,
+      'BY': 76,
+      'BZ': 77,
+      'CA': 78,
+      'CB': 79,
+      'CC': 80,
+      'CD': 81,
+      'CE': 82,
+      'CF': 83,
+      'CG': 84,
+      'CH': 85,
+      'CI': 86,
+      'CJ': 87,
+      'CK': 88,
+      'CL': 89,
+      'CM': 90,
+      'CN': 91,
+      'CO': 92,
+      'CP': 93,
+      'CQ': 94,
+      'CR': 95,
+      'CS': 96,
+      'CT': 97,
+      'CU': 98,
+      'CV': 99,
+      'CW': 100,
+      'CX': 101,
     };
     return mapIndex[this];
   }

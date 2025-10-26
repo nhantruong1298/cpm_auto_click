@@ -291,15 +291,15 @@ class Parser {
               ? getBorderStyleByName(borderStyleAttribute)
               : null;
 
-          String? borderColorHex;
-          try {
-            final color = element?.findElements('color').single;
-            borderColorHex = color?.getAttribute('rgb')?.trim();
-          } on StateError catch (_) {}
+          // String? borderColorHex;
+          // try {
+          //   final color = element?.findElements('color').single;
+          //   borderColorHex = color?.getAttribute('rgb')?.trim();
+          // } on StateError catch (_) {}
 
           borderElements[elementName] = Border(
-              borderStyle: borderStyle,
-              borderColorHex: borderColorHex?.excelColor);
+            borderStyle: borderStyle,
+          );
         }
 
         final borderSet = _BorderSet(
@@ -610,11 +610,11 @@ class Parser {
 
     switch (type) {
       // sharedString
-      case 's':
-        final sharedString = _excel._sharedStrings
-            .value(int.parse(_parseValue(node.findElements('v').first)));
-        value = TextCellValue.span(sharedString!.textSpan);
-        break;
+      // case 's':
+      //   final sharedString = _excel._sharedStrings
+      //       .value(int.parse(_parseValue(node.findElements('v').first)));
+      //   value = TextCellValue.span(sharedString!.textSpan);
+      //   break;
       // boolean
       case 'b':
         value = BoolCellValue(_parseValue(node.findElements('v').first) == '1');
@@ -623,7 +623,7 @@ class Parser {
       case 'e':
       // formula
       case 'str':
-        { 
+        {
           var formulaNode = node.findElements('f');
           if (formulaNode.isNotEmpty) {
             value = FormulaCellValue(_parseValue(formulaNode.first).toString());

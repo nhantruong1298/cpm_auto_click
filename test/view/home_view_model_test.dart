@@ -1,17 +1,15 @@
-import 'package:cpm_auto_click/view/home_view_model.dart';
+import 'package:cpm_auto_click/utils/common.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  late HomeViewModel homeViewModel;
 
   setUp(() {
-    homeViewModel = HomeViewModel();
   });
 
   test(
       'checkValidGPSDate'
       ' with gpsDate equal null', () {
-    final result = homeViewModel.checkValidGPSDate(
+    final result = checkValidGPSDate(
         gpsDate: null, start: DateTime.now(), end: DateTime.now());
 
     expect(false, result);
@@ -27,7 +25,7 @@ void main() {
     var end = DateTime.now().add(const Duration(days: 1));
 
     // when
-    final result = homeViewModel.checkValidGPSDate(
+    final result = checkValidGPSDate(
         gpsDate: gpsDate, start: start, end: end);
 
     // then
@@ -44,7 +42,7 @@ void main() {
     var end = gpsDate;
 
     // when
-    final result = homeViewModel.checkValidGPSDate(
+    final result = checkValidGPSDate(
         gpsDate: gpsDate, start: start, end: end);
 
     // then
@@ -60,7 +58,7 @@ void main() {
     var end = DateTime.now();
 
     // when
-    final result = homeViewModel.checkValidGPSDate(
+    final result = checkValidGPSDate(
         gpsDate: gpsDate, start: start, end: end);
 
     // then
@@ -76,7 +74,7 @@ void main() {
     var end = DateTime.now().subtract(const Duration(days: 1));
 
     // when
-    final result = homeViewModel.checkValidGPSDate(
+    final result = checkValidGPSDate(
         gpsDate: gpsDate, start: start, end: end);
 
     // then
