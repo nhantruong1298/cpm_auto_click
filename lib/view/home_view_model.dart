@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:math';
 import 'package:collection/collection.dart';
-import 'package:cpm_auto_click/model/plan.dart';
 import 'package:cpm_auto_click/utils/date_formatter.dart';
 import 'package:cpm_auto_click/view/home_view_state.dart';
 import 'package:excel/excel.dart';
@@ -29,8 +28,6 @@ class HomeViewModel with ChangeNotifier {
     return excel.sheets[params['sheetName'] as String];
   }
 
- 
-
   Future<void> openTabWebInExcelByNumber({
     required File excelFile,
     required String sheetName,
@@ -38,8 +35,8 @@ class HomeViewModel with ChangeNotifier {
     required DateTime end,
     required int numberOfTab,
     required int colGPS,
-    required int colWeb,
-    required int colStaffId,
+    required int indexColWeb,
+    required int indexColStaffId,
   }) async {
     _state = HomeViewLoading();
     notifyListeners();
@@ -52,23 +49,25 @@ class HomeViewModel with ChangeNotifier {
         return notifyListeners();
       }
 
-      final selectRows = sheet.rows.where((row) {
+      //get rows within date range
+      final rows = sheet.rows.where((row) {
         final gpsDate = DateFormatter.parse(
             ((row[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
 
         return checkValidGPSDate(gpsDate: gpsDate, start: start, end: end);
       }).toList();
 
-      // Group staff by name
-      final staffGroup = selectRows.groupListsBy(
-          (cols) => (cols[colStaffId]?.value as TextCellValue).value.text);
+      // Group rows by staff id
+      final groupRows = rows.groupListsBy(
+          (cols) => (cols[indexColStaffId]?.value as TextCellValue).value.text);
 
-      final tabs =
-          _getRandomTabsByNumber(staffGroup, numberOfTab, colWeb: colWeb);
-      // await Future.forEach(
-      //     tabs, (tab) async => await _launchUrl(Uri.parse(tab)));
+      final tabs = _getRandomTabsByNumber(
+        groupRows: groupRows,
+        numberOfTab: numberOfTab,
+        indexColWeb: indexColWeb,
+      );
 
-      _state = HomeViewSuccess(tabs, showConfirmDialog: false);
+      _state = HomeViewSuccess(tabs, showConfirmOpenTabs: false);
       notifyListeners();
     } catch (error) {
       _state = HomeViewError(error.toString());
@@ -76,23 +75,16 @@ class HomeViewModel with ChangeNotifier {
     }
   }
 
-  Map<String?, List<List<Data?>>> _groupRowsByStaffId(
-      List<List<Data?>> rows, int indexStaffId) {
-    return rows.groupListsBy((row) {
-      return (row[indexStaffId]?.value as TextCellValue).value.text;
-    });
-  }
-
-  List<String> _getRandomTabsByNumber(
-    Map<String?, List<List<Data?>>> groupRows,
-    int numberOfTab, {
-    required int colWeb,
+  List<String> _getRandomTabsByNumber({
+    required Map<String?, List<List<Data?>>> groupRows,
+    required int numberOfTab,
+    required int indexColWeb,
   }) {
     String? getRandomTab(List<List<Data?>> rows) {
       final randomIndex = Random().nextInt(rows.length);
 
       final hyperlink =
-          (rows[randomIndex][colWeb]?.value as FormulaCellValue).formula;
+          (rows[randomIndex][indexColWeb]?.value as FormulaCellValue).formula;
 
       final url = (hyperlink
           .split('"')
@@ -140,105 +132,6 @@ class HomeViewModel with ChangeNotifier {
     }
   }
 
-  List<String> _getRandomTabsByPlan(
-    Map<String?, List<List<Data?>>> staffGroup, {
-    required int indexColPlan,
-    required int indexColWeb,
-  }) {
-    List<List<Data?>> selectedRows = [];
-
-    // get rows for each staff
-    staffGroup.forEach((_, rows) {
-      String plan = '';
-
-      try {
-        plan =
-            (rows.first[indexColPlan]?.value as TextCellValue?)?.value.text ??
-                '';
-        plan = plan.toLowerCase().trim();
-      } catch (_) {
-        plan = '';
-      }
-
-      final ratio = switch (plan) {
-        Plan.green => 0.1,
-        Plan.yellow => 0.15,
-        Plan.red => 0.20,
-        _ => 0.0
-      };
-
-      int numberOfTabs;
-
-      if (plan == Plan.red) {
-        numberOfTabs = (ratio * rows.length).ceil();
-      } else {
-        numberOfTabs = (ratio * rows.length).round();
-      }
-
-      final randomRows = List.of(rows);
-      randomRows.shuffle();
-
-      selectedRows.addAll(randomRows.take(numberOfTabs));
-    });
-
-    return selectedRows.map((row) {
-      final hyperlink = (row[indexColWeb]?.value as FormulaCellValue).formula;
-
-      final url = (hyperlink
-          .split('"')
-          .firstWhereOrNull((element) => element.contains('https')));
-
-      return url ?? '';
-    }).toList();
-  }
-
-  Future<void> calculateTabWebInExcelByPlan({
-    required File excelFile,
-    required String sheetName,
-    required DateTime start,
-    required DateTime end,
-    required int colGPS,
-    required int colWeb,
-    required int colStaffId,
-    required int colPlan,
-  }) async {
-    _state = HomeViewLoading();
-    notifyListeners();
-
-    try {
-      final sheet = await _getExcelSheet(excelFile, sheetName);
-
-      if (sheet == null) {
-        _state = const HomeViewError('Tên sheet không tồn tại');
-        return notifyListeners();
-      }
-
-      final selectRows = sheet.rows.where((cols) {
-        final gpsDate = DateFormatter.parse(
-            ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
-
-        return checkValidGPSDate(gpsDate: gpsDate, start: start, end: end);
-      }).toList();
-
-      // group by name staff
-      final staffGroup = selectRows.groupListsBy((cols) {
-        return (cols[colStaffId]?.value as TextCellValue).value.text;
-      });
-
-      final tabs = _getRandomTabsByPlan(
-        staffGroup,
-        indexColPlan: colPlan,
-        indexColWeb: colWeb,
-      );
-
-      _state = HomeViewSuccess(tabs);
-      notifyListeners();
-    } catch (error) {
-      _state = HomeViewError(error.toString());
-      notifyListeners();
-    }
-  }
-
   Future<void> onOpenTabs(List<String> tabs) async {
     try {
       if (tabs.isNotEmpty) {
@@ -260,7 +153,7 @@ class HomeViewModel with ChangeNotifier {
       required DateTime end,
       required int colGPS,
       required int colStaffId,
-      required int colWeb}) async {
+      required int indexColWeb}) async {
     _state = HomeViewLoading();
     notifyListeners();
 
@@ -272,7 +165,7 @@ class HomeViewModel with ChangeNotifier {
         return notifyListeners();
       }
 
-      final selectRows = sheet.rows.where((cols) {
+      final rows = sheet.rows.where((cols) {
         final gpsDate = DateFormatter.parse(
             ((cols[colGPS]?.value as TextCellValue?)?.value.text ?? '').trim());
 
@@ -280,24 +173,23 @@ class HomeViewModel with ChangeNotifier {
       }).toList();
 
       // group by name staff
-      final staffGroup = selectRows.groupListsBy(
-          (cols) => (cols[colStaffId]?.value as TextCellValue).value.text);
+      final originalGroups = rows.groupListsBy(
+        (cols) => (cols[colStaffId]?.value as TextCellValue).value.text,
+      );
 
-      // remove another staff
-      staffGroup.removeWhere((key, _) =>
-          key!.trim().toLowerCase().toString() !=
-          staffId.trim().toLowerCase().toString());
+      final normalizedStaffId = staffId.trim().toLowerCase();
 
-      if (staffGroup.isEmpty) {
-        throw 'Không tìm thấy mã NV.';
+      final staffEntry = originalGroups.entries.firstWhereOrNull(
+          (e) => (e.key ?? '').trim().toLowerCase() == normalizedStaffId);
+
+      if (staffEntry == null || staffEntry.value.isEmpty) {
+        throw Exception('Không tìm thấy mã NV.');
       }
 
-      final staffData = staffGroup.entries.toList().first.value;
-
       final tabs = _getRandomTabsByNumber(
-        staffGroup,
-        (percentTab * staffData.length / 100).round(),
-        colWeb: colWeb,
+        groupRows: {staffEntry.key: staffEntry.value},
+        numberOfTab: (percentTab * staffEntry.value.length / 100).round(),
+        indexColWeb: indexColWeb,
       );
 
       _state = HomeViewSuccess(tabs);

@@ -8,9 +8,9 @@ final class HomeViewLoading extends HomeViewState {}
 
 final class HomeViewSuccess extends HomeViewState {
   final List<String> tabs;
-  final bool showConfirmDialog;
+  final bool showConfirmOpenTabs;
 
-  const HomeViewSuccess(this.tabs, {this.showConfirmDialog = true});
+  const HomeViewSuccess(this.tabs, {this.showConfirmOpenTabs = true});
 }
 
 final class HomeViewError extends HomeViewState {
