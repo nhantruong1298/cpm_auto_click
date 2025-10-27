@@ -610,28 +610,57 @@ class Parser {
 
     switch (type) {
       // sharedString
-      // case 's':
-      //   final sharedString = _excel._sharedStrings
-      //       .value(int.parse(_parseValue(node.findElements('v').first)));
-      //   value = TextCellValue.span(sharedString!.textSpan);
-      //   break;
+      case 's':
+      case 'str':
+        {
+          // Helper to parse a formula or plain v node into a FormulaCellValue.
+          // ignore: no_leading_underscores_for_local_identifiers
+          FormulaCellValue? _parseFormulaOrV(XmlElement n) {
+            var formulaNode = n.findElements('f');
+            if (formulaNode.isNotEmpty) {
+              return FormulaCellValue(
+                  _parseValue(formulaNode.first).toString());
+            }
+            final vNode = n.findElements('v').firstOrNull;
+            if (vNode != null) {
+              return FormulaCellValue(_parseValue(vNode));
+            }
+            return null;
+          }
+
+          if (type == 's') {
+            // For shared strings, prefer formulas when present; otherwise read shared string by index.
+            final formulaVal = _parseFormulaOrV(node);
+            if (formulaVal != null &&
+                formulaVal.formula.contains("HYPERLINK")) {
+              value = formulaVal;
+              break;
+            }
+
+            final element = node.findElements('v').firstOrNull;
+            if (element == null) break;
+
+            final index = int.tryParse(_parseValue(element));
+            if (index == null) break;
+
+            final sharedString = _excel._sharedStrings.value(index);
+            if (sharedString != null) {
+              value = TextCellValue.span(sharedString.textSpan);
+            }
+            break;
+          } else {
+            // 'str' - always treat as formula/string result
+            value = _parseFormulaOrV(node);
+            break;
+          }
+        }
       // boolean
       case 'b':
         value = BoolCellValue(_parseValue(node.findElements('v').first) == '1');
         break;
       // error
       case 'e':
-      // formula
-      case 'str':
-        {
-          var formulaNode = node.findElements('f');
-          if (formulaNode.isNotEmpty) {
-            value = FormulaCellValue(_parseValue(formulaNode.first).toString());
-          } else {
-            value = FormulaCellValue(_parseValue(node.findElements('v').first));
-          }
-          break;
-        }
+
       // inline string
       case 'inlineStr':
         // <c r='B2' t='inlineStr'>

@@ -358,9 +358,7 @@ class _ColumnTextField extends StatelessWidget {
           width: 50,
           child: TextField(
             controller: controller,
-            onChanged: (text) {
-              controller.text = text.trim().toUpperCase();
-            },
+            onChanged: (text) {},
             textAlign: TextAlign.center,
             textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(),
@@ -489,6 +487,6 @@ extension on String {
       'CW': 100,
       'CX': 101,
     };
-    return mapIndex[trim()];
+    return mapIndex[trim().toUpperCase()];
   }
 }
