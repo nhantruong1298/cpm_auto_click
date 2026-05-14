@@ -168,10 +168,10 @@ packages:
     dependency: transitive
     description:
       name: get_it
-      sha256: d85128a5dae4ea777324730dc65edd9c9f43155c109d5cc0a69cab74139fbac1
+      sha256: "568d62f0e68666fb5d95519743b3c24a34c7f19d834b0658c46e26d778461f66"
       url: "https://pub.dev"
     source: hosted
-    version: "7.7.0"
+    version: "9.2.1"
   icons_launcher:
     dependency: "direct main"
     description:
@@ -253,13 +253,13 @@ packages:
     source: hosted
     version: "1.15.0"
   msix:
-    dependency: "direct dev"
+    dependency: "direct main"
     description:
       name: msix
-      sha256: c50d6bd1aafe0d071a3c1e5a5ccb056404502935cb0a549e3178c4aae16caf33
+      sha256: b6b08e7a7b5d1845f2b1d31216d5b1fb558e98251efefe54eb79ed00d27bc2ac
       url: "https://pub.dev"
     source: hosted
-    version: "3.16.8"
+    version: "3.16.13"
   nested:
     dependency: transitive
     description:

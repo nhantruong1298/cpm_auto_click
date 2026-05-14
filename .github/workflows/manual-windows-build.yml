@@ -1,0 +1,64 @@
+name: Manual Windows Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      flutter-version:
+        description: 'Flutter version'
+        required: false
+        default: '3.22.0'
+        type: string
+
+env:
+  FLUTTER_VERSION: ${{ github.event.inputs.flutter-version || '3.22.0' }}
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: 'stable'
+      
+      - name: Display Flutter version
+        run: flutter --version
+      
+      - name: Get dependencies
+        run: flutter pub get
+      
+      - name: Build Windows Release
+        run: flutter build windows --release --verbose
+      
+      - name: Create MSIX Package
+        run: flutter pub run msix:create --verbose
+        continue-on-error: true
+      
+      - name: List build output
+        run: |
+          echo "=== Build Output ==="
+          ls -R "build/windows/x64/runner/Release/" 2>$null || dir "build\windows\x64\runner\Release\"
+      
+      - name: Upload Windows Build
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-build-${{ github.run_number }}
+          path: build/windows/x64/runner/Release/
+          retention-days: 7
+      
+      - name: Create build summary
+        run: |
+          echo "# Windows Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Build completed successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Output Files" >> $GITHUB_STEP_SUMMARY
+          echo "- Build directory: \`build/windows/x64/runner/Release/\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "## Artifacts" >> $GITHUB_STEP_SUMMARY
+          echo "Download the Windows build artifacts from the Actions page" >> $GITHUB_STEP_SUMMARY
