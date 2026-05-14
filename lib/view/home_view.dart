@@ -117,11 +117,31 @@ class _HomeViewState extends State<HomeView> {
                 const Gap(ratio: 3),
                 TextField(
                   controller: _sheetNameTextController,
+                  onChanged: (text) {
+                    final newText = text.toUpperCase();
+                    _sheetNameTextController.value =
+                        _sheetNameTextController.value.copyWith(
+                      text: newText,
+                      selection:
+                          TextSelection.collapsed(offset: newText.length),
+                    );
+                  },
+                  textCapitalization: TextCapitalization.characters,
                   decoration: const InputDecoration(label: Text('Tên sheet')),
                 ),
                 const Gap(ratio: 1),
                 TextField(
                   controller: _numberOfTabTextController,
+                  onChanged: (text) {
+                    final newText = text.toUpperCase();
+                    _numberOfTabTextController.value =
+                        _numberOfTabTextController.value.copyWith(
+                      text: newText,
+                      selection:
+                          TextSelection.collapsed(offset: newText.length),
+                    );
+                  },
+                  textCapitalization: TextCapitalization.characters,
                   decoration: const InputDecoration(
                     label: Text('Số links cần mở'),
                   ),
@@ -138,11 +158,31 @@ class _HomeViewState extends State<HomeView> {
                 const Gap(ratio: 3),
                 TextField(
                   controller: _staffIdTextController,
+                  onChanged: (text) {
+                    final newText = text.toUpperCase();
+                    _staffIdTextController.value =
+                        _staffIdTextController.value.copyWith(
+                      text: newText,
+                      selection:
+                          TextSelection.collapsed(offset: newText.length),
+                    );
+                  },
+                  textCapitalization: TextCapitalization.characters,
                   decoration: const InputDecoration(label: Text('Mã NV')),
                 ),
                 const Gap(ratio: 1),
                 TextField(
                   controller: _percentTabsTextEditingController,
+                  onChanged: (text) {
+                    final newText = text.toUpperCase();
+                    _percentTabsTextEditingController.value =
+                        _percentTabsTextEditingController.value.copyWith(
+                      text: newText,
+                      selection:
+                          TextSelection.collapsed(offset: newText.length),
+                    );
+                  },
+                  textCapitalization: TextCapitalization.characters,
                   decoration:
                       const InputDecoration(label: Text('% tab muốn mở')),
                 ),
@@ -222,10 +262,12 @@ class _HomeViewState extends State<HomeView> {
   }
 
   Future<void> _handlePickGPSTime() async {
+    final now = DateTime.now();
     _gpsRangeTime = await showDateRangePicker(
       context: context,
-      firstDate: DateTime(2000, 1, 1),
-      lastDate: DateTime(2026, 1, 1),
+      firstDate: DateTime(now.year, now.month - 8, now.day),
+      lastDate: DateTime(now.year, now.month + 8, now.day),
+      locale: const Locale('vi'),
     );
 
     setState(() {});
@@ -358,7 +400,13 @@ class _ColumnTextField extends StatelessWidget {
           width: 50,
           child: TextField(
             controller: controller,
-            onChanged: (text) {},
+            onChanged: (text) {
+              final newText = text.toUpperCase();
+              controller.value = controller.value.copyWith(
+                text: newText,
+                selection: TextSelection.collapsed(offset: newText.length),
+              );
+            },
             textAlign: TextAlign.center,
             textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(),
