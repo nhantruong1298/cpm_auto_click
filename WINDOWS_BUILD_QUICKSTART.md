@@ -76,6 +76,7 @@ git push origin v1.0.6
 ```
 
 The GitHub Actions will:
+
 - ✓ Build the Windows app
 - ✓ Create MSIX installer
 - ✓ Upload to GitHub Releases
@@ -85,10 +86,12 @@ The GitHub Actions will:
 ## What's Set Up
 
 ✅ **GitHub Actions Workflows**
+
 - `build-windows.yml` - Automatically builds on push/PR
 - `manual-windows-build.yml` - Manual trigger for on-demand builds
 
 ✅ **Documentation**
+
 - `WINDOWS_BUILD_SETUP.md` - Detailed setup guide
 - `WINDOWS_BUILD_CHECKLIST.md` - Pre-flight checklist
 - `build_windows.sh` - Local build script
@@ -96,6 +99,7 @@ The GitHub Actions will:
 - `WINDOWS_BUILD_QUICKSTART.md` - This file
 
 ✅ **Dependencies**
+
 - `msix: ^3.16.13` - Already added to pubspec.yaml
 
 ---
@@ -103,6 +107,7 @@ The GitHub Actions will:
 ## Build Status
 
 Check build status in GitHub Actions tab:
+
 - All workflows should run successfully ✓
 - First-time builds may take 3-5 minutes
 

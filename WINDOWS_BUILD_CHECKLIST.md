@@ -7,9 +7,11 @@
   - [ ] Include Windows 10 SDK (or latest available)
 
 - [ ] Verify Flutter installation
+
   ```bash
   flutter doctor -v
   ```
+
   Should show: ✓ Visual Studio build tools detected
 
 - [ ] Test Windows build
@@ -30,17 +32,20 @@ Update your `pubspec.yaml` with the MSIX configuration section. See `WINDOWS_BUI
 Two GitHub Actions workflows are configured:
 
 #### Auto-Build Workflow (`.github/workflows/build-windows.yml`)
+
 - Automatically runs on: push to main/develop, pull requests
 - Creates MSIX when pushing tags (e.g., v1.0.6)
 - Uploads artifacts for review
 
 **To trigger a release:**
+
 ```bash
 git tag v1.0.6
 git push origin v1.0.6
 ```
 
 #### Manual Build Workflow (`.github/workflows/manual-windows-build.yml`)
+
 - Triggered manually from Actions tab
 - Allows selecting Flutter version
 - Useful for testing builds on demand

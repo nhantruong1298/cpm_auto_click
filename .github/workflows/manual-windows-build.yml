@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       flutter-version:
-        description: 'Flutter version'
+        description: "Flutter version"
         required: false
-        default: '3.22.0'
+        default: "3.22.0"
         type: string
 
 env:
@@ -15,42 +15,42 @@ env:
 jobs:
   build-windows:
     runs-on: windows-latest
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: ${{ env.FLUTTER_VERSION }}
-          channel: 'stable'
-      
+          channel: "stable"
+
       - name: Display Flutter version
         run: flutter --version
-      
+
       - name: Get dependencies
         run: flutter pub get
-      
+
       - name: Build Windows Release
         run: flutter build windows --release --verbose
-      
+
       - name: Create MSIX Package
         run: flutter pub run msix:create --verbose
         continue-on-error: true
-      
+
       - name: List build output
         run: |
           echo "=== Build Output ==="
           ls -R "build/windows/x64/runner/Release/" 2>$null || dir "build\windows\x64\runner\Release\"
-      
+
       - name: Upload Windows Build
         uses: actions/upload-artifact@v4
         with:
           name: windows-build-${{ github.run_number }}
           path: build/windows/x64/runner/Release/
           retention-days: 7
-      
+
       - name: Create build summary
         run: |
           echo "# Windows Build Summary" >> $GITHUB_STEP_SUMMARY

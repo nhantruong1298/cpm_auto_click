@@ -30,12 +30,14 @@ msix_config:
 ## Step 2: Build Locally (Windows machine only)
 
 ### Using the build script:
+
 ```bash
 chmod +x build_windows.sh  # On WSL or Git Bash
 ./build_windows.sh
 ```
 
 ### Or manually:
+
 ```bash
 flutter build windows --release
 flutter pub run msix:create
@@ -58,6 +60,7 @@ git push origin v1.0.6
 ```
 
 This will automatically:
+
 - Build the Windows app
 - Create MSIX package
 - Upload to GitHub Releases
